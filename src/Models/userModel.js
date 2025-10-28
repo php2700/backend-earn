@@ -37,6 +37,10 @@ const userSchema = new mongoose.Schema({
     totalAmount: {
         type: Number,
         default: 0
+    },
+    upiId: {
+        type: String,
+        required: false
     }
 
 }, {

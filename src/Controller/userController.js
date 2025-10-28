@@ -4,20 +4,71 @@ import jwt from "jsonwebtoken";
 import crypto from 'crypto';
 import ContactModel from "../Models/contactModel.js";
 import ReferModel from "../Models/referModel.js";
+import WithdrawModel from '../Models/withdrawModel.js';
+
 
 export const getUserData = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const user = await userModel.findById(id).select("-password");
 
-        if (!user) {
+        const result = await userModel.aggregate([
+            {
+                $match: { _id: new mongoose.Types.ObjectId(id) }
+            },
+            {
+                $lookup: {
+                    from: "refers",
+                    localField: "_id",
+                    foreignField: "referById",
+                    as: "referredUsers"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "referredUsers.referTo",
+                    foreignField: "_id",
+                    as: "referredUsersDetails"
+                }
+            },
+            {
+                $addFields: {
+                    activeReferralsCount: {
+                        $size: {
+                            $filter: {
+                                input: "$referredUsersDetails",
+                                cond: { $eq: ["$$this.isActivate", true] }
+                            }
+                        }
+                    },
+                    inactiveReferralsCount: {
+                        $size: {
+                            $filter: {
+                                input: "$referredUsersDetails",
+                                cond: { $eq: ["$$this.isActivate", false] }
+                            }
+                        }
+                    }
+                }
+            }
+        ]);
+
+        if (!result || result?.length === 0) {
             return res.status(404).json({ message: "User not found" });
         }
-        res.status(200).json(user);
+
+        const userData = {
+            ...result[0],
+            activeReferralsCount: result[0].activeReferralsCount,
+            inactiveReferralsCount: result[0].inactiveReferralsCount
+        };
+
+        res.status(200).json(userData);
     } catch (error) {
         next(error);
     }
 };
+
 
 export const LoginWithGoogle = async (req, res) => {
     try {
@@ -115,47 +166,78 @@ export const getReferralsByCode = async (req, res, next) => {
 
 
 
+export const activateReferCode = async (req, res, next) => {
+    try {
+        const { userId, isActivate } = req?.body;
 
-// export const updatePayment = async (req, res) => {
-//     try {
-//         const { userId, loanApplicationId } = req.body;
-//         const file = req.file;
+        if (!userId) {
+            return res.status(400).json({ message: "Missing parameters" });
+        }
+        const userData = await userModel.findOne({ _id: userId })
+        if (!userData) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        function generateReferralCode(length = 8) {
+            return crypto.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
+        }
+        userData.isActivate = true;
+        const referralCode = generateReferralCode();
+        userData.referralCode = referralCode;
+        await userData.save();
 
-//         if (!file) {
-//             return res.status(400).json({ message: "No image uploaded" });
-//         }
+        const refferdUser = await ReferModel.findOne({ referTo: userId });
+        if (refferdUser) {
+            const refferdUserData = await userModel.findOne({ _id: refferdUser?.referById });
+            const referAmount = Number(process.env.REFER_AMOUNT) || 200;
+            refferdUserData.walletAmount = (refferdUserData.walletAmount || 0) + referAmount;
+            await refferdUserData.save();
+        }
+        return res.status(201).json({ message: "activate successfully!" });
+    } catch (error) {
+        console.log("upadate error", error);
+        next(error)
+    }
+}
 
-//         const isRefferCodeExist = await userModel.findOne({ _id: userId })
-//         function generateReferralCode(length = 8) {
-//             return crypto.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
-//         }
+export const edit = async (req, res, next) => {
+    const { userId, name, upiId } = req.body;
+    try {
+        const user = await userModel.findByIdAndUpdate(
+            userId,
+            { name, upiId },
+            { new: true }
+        );
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json({ message: "Profile updated successfully", user });
+    } catch (error) {
+        next(error)
+    }
+}
 
-//         if (isRefferCodeExist && !isRefferCodeExist.referralCode) {
-//             const referralCode = generateReferralCode();
-//             isRefferCodeExist.referralCode = referralCode;
-//             isRefferCodeExist.isAppliedLoan = true;
-//             await isRefferCodeExist.save();
-//         }
 
-//         const updatedLoan = await loanApplyModel.findByIdAndUpdate(
-//             loanApplicationId,
-//             { paymentImg: `public/uploads/${req.file.filename}` },
-//             { new: true }
-//         );
+export const withdrawAmount = async (req, res, next) => {
+    try {
+        const { userId, amount } = req.body;
 
-//         if (!updatedLoan) {
-//             return res.status(404).json({ message: "Loan application not found" });
-//         }
+        if (!userId || !amount)
+            return res.status(400).json({ message: "Missing required fields" });
 
-//         res.status(200).json({
-//             message: "Payment proof uploaded successfully!",
-//             data: updatedLoan,
-//         });
-//     } catch (error) {
-//         res.status(500).json({ message: error.message });
-//     }
-// };
+        const user = await userModel.findOne({ _id: userId });
+        if (!user) return res.status(404).json({ message: "User not found" });
 
+        if (user.walletAmount < amount)
+            return res.status(400).json({ message: "Insufficient balance" });
+
+        const withdraw = await new WithdrawModel({ userId, amount });
+        await withdraw.save();
+        res.status(200).json({
+            message: "Withdraw request sent to admin for approval",
+            withdraw,
+        });
+    } catch (error) {
+        next(error)
+    }
+}
 
 export const addContact = async (req, res, next) => {
     try {

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import userModel from "../Models/userModel.js";
 import referAmountModel from "../Models/referAmount.js";
 import ContactModel from "../Models/contactModel.js";
+import WithdrawModel from "../Models/withdrawModel.js";
 
 
 const checkPassword = async (password, hashPassword) => {
@@ -43,6 +44,31 @@ export const Login = async (req, res, next) => {
 
 
 
+// export const userList = async (req, res, next) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const skip = (page - 1) * limit;
+
+//     const total = await userModel.countDocuments();
+//     const applications = await userModel.find().sort({ createdAt: -1 }).skip(skip)
+//       .limit(limit);
+
+//     res.json({
+//       success: true,
+//       data: applications,
+//       pagination: {
+//         total,
+//         page,
+//         limit,
+//         totalPages: Math.ceil(total / limit),
+//       },
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 export const userList = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -50,17 +76,83 @@ export const userList = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const total = await userModel.countDocuments();
-    const applications = await userModel.find().sort({ createdAt: -1 }).skip(skip)
-      .limit(limit);
+
+    const users = await userModel.aggregate([
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: "refers",
+          localField: "_id",
+          foreignField: "referById",
+          as: "referrals"
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "referrals.referTo",
+          foreignField: "_id",
+          as: "referralsDetails"
+        }
+      },
+      {
+        $addFields: {
+          referrals: {
+            $map: {
+              input: "$referrals",
+              as: "ref",
+              in: {
+                _id: "$$ref._id",
+                referTo: "$$ref.referTo",
+                createdAt: "$$ref.createdAt",
+                userDetails: {
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: "$referralsDetails",
+                        as: "r",
+                        cond: { $eq: ["$$r._id", "$$ref.referTo"] }
+                      }
+                    },
+                    0
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          email: 1,
+          role: 1,
+          registerBy: 1,
+          walletAmount: 1,
+          referralCode: 1,
+          isActivate: 1,
+          upiId: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          referrals: 1
+        }
+      },
+
+      { $skip: skip },
+      { $limit: limit }
+    ]);
+
     res.json({
       success: true,
-      data: applications,
+      data: users,
       pagination: {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-      },
+        totalPages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
     next(error);
@@ -113,6 +205,34 @@ export const getReferAmount = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+export const withdrawReqList = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const total = await WithdrawModel.countDocuments();
+    const withReqData = await WithdrawModel.find()
+      .populate('userId')
+      .skip(skip).limit(limit);
+
+
+    res.json({
+      success: true,
+      data: withReqData,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+
+  } catch (error) {
+    next(error)
+  }
+}
 
 
 export const updateReferAmount = async (req, res) => {

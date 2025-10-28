@@ -1,5 +1,5 @@
 import express from 'express'
-import { contactList, getReferAmount, Login, referList, updateReferAmount, userList } from '../Controller/adminController.js';
+import { contactList, getReferAmount, Login, referList, updateReferAmount, userList, withdrawReqList } from '../Controller/adminController.js';
 import { authentication } from '../Middleware/authentication.js';
 import { authorization } from '../Middleware/authorization.js';
 
@@ -11,8 +11,12 @@ adminRouter.get('/referList', authentication, authorization(['admin']), referLis
 
 
 // refer amount edit and get
-adminRouter.get('/refer-amount', authentication, authorization(['admin','user']), getReferAmount)
+adminRouter.get('/refer-amount', authentication, authorization(['admin', 'user']), getReferAmount)
 adminRouter.patch('/refer-amount', authentication, authorization(['admin']), updateReferAmount)
+
+/*withdraw req-list */
+adminRouter.get('/withdraw-req-list', authentication, authorization(['admin']), withdrawReqList)
+
 
 
 //contact lsit

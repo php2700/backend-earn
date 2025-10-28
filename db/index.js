@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
-
+// const username=totoearn266_db_user
 const connectDb = async () => {
-    const dbName = 'fatafatLoan';
+
     try {
-        await mongoose.connect(`mongodb+srv://datastoredbvertex_db_user:J9IC43y7OdMjGs6D@fatafatloancluster0.a6eodhb.mongodb.net/${dbName}?retryWrites=true&w=majority&appName=fatafatLoanCluster0`);
+        await mongoose.connect(process.env.DB_CONNECTION);
         console.log("connected ")
     } catch (error) {
         console.log(error, "connection error")
