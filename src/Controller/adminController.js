@@ -214,7 +214,8 @@ export const withdrawReqList = async (req, res, next) => {
     const total = await WithdrawModel.countDocuments();
     const withReqData = await WithdrawModel.find()
       .populate('userId')
-      .skip(skip).limit(limit);
+      .skip(skip).limit(limit)
+      .sort({ createdAt: -1 })
 
 
     res.json({
@@ -276,3 +277,77 @@ export const contactList = async (req, res, next) => {
     next(error)
   }
 }
+
+export const sendPayment = async (req, res, next) => {
+  try {
+    const { _id, userId, amount, isAccept } = req.body;
+    if (!userId || !amount) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const withdrawReqData = await WithdrawModel.findOne({ _id: _id });
+    if (withdrawReqData.isAccept == 'Accepted') {
+      return res.status(200).json({ success: true, message: 'Already Accepted' })
+    }
+    if (isAccept == 'Rejected') {
+      withdrawReqData.isAccept = isAccept;
+      await withdrawReqData.save();
+      return res.status(200).json({ success: true, message: 'withdraw req rejected' })
+    }
+    else if (isAccept == 'Accepted') {
+      withdrawReqData.isAccept = isAccept;
+      await withdrawReqData.save();
+      const userData = await userModel.findOne({ _id: userId });
+      userData.walletAmount = userData.walletAmount - amount;
+      userData.totalAmount = userData.totalAmount + amount;
+      await userData.save();
+      return res.status(200).json({ success: true, message: 'accepted ' })
+    }
+    return res.status(200).json({ success: true, message: 'withdraw req updated' })
+
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const counts = async (req, res, next) => {
+  try {
+    const result = await userModel.aggregate([
+      {
+        $facet: {
+          totalUsers: [{ $count: "count" }],
+          activeUsers: [
+            { $match: { isActivate: true } },
+            { $count: "count" },
+          ],
+          inactiveUsers: [
+            { $match: { isActivate: false } },
+            { $count: "count" },
+          ],
+          totalPayout: [
+            { $group: { _id: null, sum: { $sum: "$totalAmount" } } },
+          ],
+        },
+      },
+      {
+        $project: {
+          userCount: { $arrayElemAt: ["$totalUsers.count", 0] },
+          active: { $arrayElemAt: ["$activeUsers.count", 0] },
+          inActive: { $arrayElemAt: ["$inactiveUsers.count", 0] },
+          totalPayout: { $arrayElemAt: ["$totalPayout.sum", 0] },
+        },
+      },
+    ]);
+
+    const stats = result[0] || {};
+    return res.status(200).json({
+      success: true,
+      userCount: stats.userCount || 0,
+      active: stats.active || 0,
+      inActive: stats.inActive || 0,
+      totalPayout: stats.totalPayout || 0,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

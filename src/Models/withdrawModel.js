@@ -5,7 +5,7 @@ const withdrawReqSchema = new mongoose.Schema(
         userId: {
             type: mongoose.Types.ObjectId,
             required: true,
-             ref: "user",
+            ref: "user",
         },
         amount: {
             type: Number,
@@ -13,7 +13,7 @@ const withdrawReqSchema = new mongoose.Schema(
         },
         isAccept: {
             type: String,
-            enum: ['Pending', 'Accepted'],
+            enum: ['Pending', 'Accepted', 'Rejected'],
             default: 'Pending'
         }
     },
