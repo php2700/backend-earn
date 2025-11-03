@@ -292,11 +292,12 @@ export const addContact = async (req, res, next) => {
 
 export const paymentConfig = async (req, res, next) => {
     try {
-         res.json({
+        res.json({
             amount: process.env.APP_AMOUNT,
             currency: process.env.APP_CURRENCY,
             name: process.env.APP_NAME,
             upiId: process.env.APP_UPI_ID,
+            imageName: process.env.PAYMENT_IMAGE
         });
     } catch (error) {
         next(error)
