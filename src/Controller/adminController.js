@@ -122,7 +122,13 @@ export const userList = async (req, res, next) => {
           upiId: 1,
           createdAt: 1,
           updatedAt: 1,
-          referrals: 1
+          referrals: 1,
+    utrNumber: {
+      $cond: [{ $ifNull: ["$utrNumber", false] }, "$utrNumber", "$$REMOVE"]
+    },
+    paymentImage: {
+      $cond: [{ $ifNull: ["$paymentImage", false] }, "$paymentImage", "$$REMOVE"]
+    }
         }
       },
 

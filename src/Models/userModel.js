@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     },
     walletAmount: {
         type: Number,
-        default: 100
+        default: 0
     },
     totalAmount: {
         type: Number,
@@ -41,7 +41,9 @@ const userSchema = new mongoose.Schema({
     upiId: {
         type: String,
         required: false
-    }
+    },
+    utrNumber: { type: String, required: false },
+    paymentImage: { type: String, required: false },
 
 }, {
     timestamps: true

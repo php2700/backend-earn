@@ -164,6 +164,42 @@ export const getReferralsByCode = async (req, res, next) => {
     }
 };
 
+export const paymentProof = async (req, res, next) => {
+    try {
+        const { userId, utrNumber } = req.body;
+        const file = req.file;
+
+        const userData = await userModel.findById(userId);
+        if (!userData) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        if (!utrNumber && !file) {
+            return res.status(400).json({
+                message: "Please provide either UTR number or payment image.",
+            });
+        }
+
+        const updateData = {};
+        if (utrNumber) updateData.utrNumber = utrNumber;
+        if (file) {
+            updateData.paymentImage = `public/uploads/${file.filename}`;
+        }
+
+        const updatedUser = await userModel.findByIdAndUpdate(
+            userId,
+            { $set: updateData },
+            { new: true }
+        );
+
+        res.status(200).json({
+            message: "Payment proof added successfully",
+            user: updatedUser,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 
 export const activateReferCode = async (req, res, next) => {
@@ -180,7 +216,8 @@ export const activateReferCode = async (req, res, next) => {
         function generateReferralCode(length = 8) {
             return crypto.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
         }
-        userData.isActivate = true;
+        userData.isActivate = isActivate;
+        userData.walletAmount = 100;
         const referralCode = generateReferralCode();
         userData.referralCode = referralCode;
         await userData.save();
@@ -200,11 +237,11 @@ export const activateReferCode = async (req, res, next) => {
 }
 
 export const edit = async (req, res, next) => {
-    const { userId, name, upiId } = req.body;
+    const { userId, name } = req.body;
     try {
         const user = await userModel.findByIdAndUpdate(
             userId,
-            { name, upiId },
+            { name },
             { new: true }
         );
         if (!user) return res.status(404).json({ message: "User not found" });
@@ -217,9 +254,9 @@ export const edit = async (req, res, next) => {
 
 export const withdrawAmount = async (req, res, next) => {
     try {
-        const { userId, amount } = req.body;
+        const { userId, amount, upiId } = req.body;
 
-        if (!userId || !amount)
+        if (!userId || !amount || !upiId)
             return res.status(400).json({ message: "Missing required fields" });
 
         const user = await userModel.findOne({ _id: userId });
@@ -228,7 +265,7 @@ export const withdrawAmount = async (req, res, next) => {
         if (user.walletAmount < amount)
             return res.status(400).json({ message: "Insufficient balance" });
 
-        const withdraw = await new WithdrawModel({ userId, amount });
+        const withdraw = await new WithdrawModel({ userId, amount, upiId });
         await withdraw.save();
         res.status(200).json({
             message: "Withdraw request sent to admin for approval",
@@ -252,3 +289,16 @@ export const addContact = async (req, res, next) => {
         next(err);
     }
 };
+
+export const paymentConfig = async (req, res, next) => {
+    try {
+         res.json({
+            amount: process.env.APP_AMOUNT,
+            currency: process.env.APP_CURRENCY,
+            name: process.env.APP_NAME,
+            upiId: process.env.APP_UPI_ID,
+        });
+    } catch (error) {
+        next(error)
+    }
+}

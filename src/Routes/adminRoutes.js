@@ -2,6 +2,7 @@ import express from 'express'
 import { contactList, counts, getReferAmount, Login, referList, sendPayment, updateReferAmount, userList, withdrawReqList } from '../Controller/adminController.js';
 import { authentication } from '../Middleware/authentication.js';
 import { authorization } from '../Middleware/authorization.js';
+import { activateReferCode } from '../Controller/userController.js';
 
 const adminRouter = express.Router()
 
@@ -21,6 +22,10 @@ adminRouter.get('/withdraw-req-list', authentication, authorization(['admin']), 
 
 //contact lsit
 adminRouter.get('/contact-list', authentication, authorization(['admin']), contactList)
+
+//activate user 
+adminRouter.patch("/activate-user", authentication, authorization(['admin']), activateReferCode);
+
 
 
 //dashboard
