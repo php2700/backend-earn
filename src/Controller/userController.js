@@ -254,9 +254,9 @@ export const edit = async (req, res, next) => {
 
 export const withdrawAmount = async (req, res, next) => {
     try {
-        const { userId, amount, upiId } = req.body;
-
-        if (!userId || !amount || !upiId)
+        const { userId, amount, bankAccountName,ifscCode } = req.body;
+console.log(req?.body,'hh')
+        if (!userId || !amount || !bankAccountName || !ifscCode)
             return res.status(400).json({ message: "Missing required fields" });
 
         const user = await userModel.findOne({ _id: userId });
@@ -265,7 +265,7 @@ export const withdrawAmount = async (req, res, next) => {
         if (user.walletAmount < amount)
             return res.status(400).json({ message: "Insufficient balance" });
 
-        const withdraw = await new WithdrawModel({ userId, amount, upiId });
+        const withdraw = await new WithdrawModel({ userId, amount, bankAccountName,ifscCode });
         await withdraw.save();
         res.status(200).json({
             message: "Withdraw request sent to admin for approval",

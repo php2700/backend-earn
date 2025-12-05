@@ -16,7 +16,7 @@ adminRouter.get('/refer-amount', authentication, authorization(['admin', 'user']
 adminRouter.patch('/refer-amount', authentication, authorization(['admin']), updateReferAmount)
 
 /*withdraw req-list */
-adminRouter.post('/send-payment', authentication, authorization(['admin']), sendPayment)
+adminRouter.patch('/send-payment', authentication, authorization(['admin']), sendPayment)
 adminRouter.get('/withdraw-req-list', authentication, authorization(['admin']), withdrawReqList)
 
 

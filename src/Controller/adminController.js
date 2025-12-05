@@ -284,8 +284,11 @@ export const sendPayment = async (req, res, next) => {
     if (isAccept == 'Rejected') {
       withdrawReqData.isAccept = isAccept;
       await withdrawReqData.save();
+      console.log("565656")
       return res.status(200).json({ success: true, message: 'withdraw req rejected' })
     }
+   
+
     else if (isAccept == 'Accepted') {
       withdrawReqData.isAccept = isAccept;
       await withdrawReqData.save();
@@ -294,7 +297,7 @@ export const sendPayment = async (req, res, next) => {
       userData.totalAmount = userData.totalAmount + amount;
       await userData.save();
       return res.status(200).json({ success: true, message: 'accepted ' })
-    }
+    } console.log('444')
     return res.status(200).json({ success: true, message: 'withdraw req updated' })
 
   } catch (error) {

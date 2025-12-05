@@ -16,9 +16,17 @@ const withdrawReqSchema = new mongoose.Schema(
             enum: ['Pending', 'Accepted', 'Rejected'],
             default: 'Pending'
         },
-        upiId:{
-             type: String,
-             required: true,
+        bankAccountName: {
+            type: String,
+            required: function () {
+                return this.isNew;
+            }
+        },
+        ifscCode: {
+            type: String,
+            required: function () {
+                return this.isNew;
+            }
         }
     },
     { timestamps: true }
