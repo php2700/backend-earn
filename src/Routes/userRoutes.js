@@ -1,5 +1,5 @@
 import express, { Router } from "express"
-import { addContact, edit, getReferralsByCode, getUserData, LoginWithGoogle, paymentConfig, paymentProof, refferBy, withdrawAmount } from "../Controller/userController.js";
+import { addContact, edit, getReferralsByCode, getUserData, LoginWithGoogle, paymentConfig, paymentProof, refferBy, userTransaaction, withdrawAmount } from "../Controller/userController.js";
 import upload from "../Middleware/upload.js";
 import { authentication } from "../Middleware/authentication.js";
 import { authorization } from "../Middleware/authorization.js";
@@ -24,7 +24,8 @@ userRouter.patch('/edit', authentication, authorization(['user']), edit)
 //withdraw amount req
 userRouter.post("/withdraw", authentication, authorization(['user']), withdrawAmount);
 
-/*-                             payemnt Details---------------- */
+/*------------- user Transaction Details---------------- */
+userRouter.get('/transaction-list/:userId',authentication, authorization(['user']),userTransaaction )
 
 //contact
 userRouter.post('/contact', addContact)

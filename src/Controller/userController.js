@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import ContactModel from "../Models/contactModel.js";
 import ReferModel from "../Models/referModel.js";
 import WithdrawModel from '../Models/withdrawModel.js';
+import { Status } from '../variable/variable.js';
 
 
 export const getUserData = async (req, res, next) => {
@@ -254,8 +255,8 @@ export const edit = async (req, res, next) => {
 
 export const withdrawAmount = async (req, res, next) => {
     try {
-        const { userId, amount, bankAccountName,ifscCode } = req.body;
-console.log(req?.body,'hh')
+        const { userId, amount, bankAccountName, ifscCode } = req.body;
+        console.log(req?.body, 'hh')
         if (!userId || !amount || !bankAccountName || !ifscCode)
             return res.status(400).json({ message: "Missing required fields" });
 
@@ -265,7 +266,7 @@ console.log(req?.body,'hh')
         if (user.walletAmount < amount)
             return res.status(400).json({ message: "Insufficient balance" });
 
-        const withdraw = await new WithdrawModel({ userId, amount, bankAccountName,ifscCode });
+        const withdraw = await new WithdrawModel({ userId, amount, bankAccountName, ifscCode });
         await withdraw.save();
         res.status(200).json({
             message: "Withdraw request sent to admin for approval",
@@ -301,5 +302,36 @@ export const paymentConfig = async (req, res, next) => {
         });
     } catch (error) {
         next(error)
+    }
+}
+
+
+export const userTransaaction = async (req, res, next) => {
+    try {
+
+        const { userId } = req?.params;
+        const result = await userModel.aggregate([
+            {
+                $match: { _id: new mongoose.Types.ObjectId(userId) }
+            },
+            {
+                $lookup: {
+                    from: 'withdraws',
+                    foreignField: 'userId',
+                    localField: '_id',
+                    as: 'withdraw'
+                }
+            }
+        ])
+
+        if (!result?.length) {
+            return res.status(Status.NOT_FOUND).json({
+                success: false,
+                message: "User not found"
+            })
+        }
+        return res.status(Status.SUCCESS).json({ success: true, data: result[0] })
+    } catch (error) {
+        next(error);
     }
 }
