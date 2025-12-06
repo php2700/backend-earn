@@ -316,10 +316,17 @@ export const userTransaaction = async (req, res, next) => {
             },
             {
                 $lookup: {
-                    from: 'withdraws',
-                    foreignField: 'userId',
-                    localField: '_id',
-                    as: 'withdraw'
+                    from: "withdraws",
+                    let: { userId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: { $expr: { $eq: ["$userId", "$$userId"] } }
+                        },
+                        {
+                            $sort: { createdAt: -1 }
+                        }
+                    ],
+                    as: "withdraw"
                 }
             }
         ])
