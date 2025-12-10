@@ -298,7 +298,8 @@ export const paymentConfig = async (req, res, next) => {
             currency: process.env.APP_CURRENCY,
             name: process.env.APP_NAME,
             upiId: process.env.APP_UPI_ID,
-            imageName: process.env.PAYMENT_IMAGE
+            imageName: process.env.PAYMENT_IMAGE,
+            accountHolder:process.env.ACCOUNT_HOLDER_NAME
         });
     } catch (error) {
         next(error)
