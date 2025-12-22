@@ -44,6 +44,11 @@ const userSchema = new mongoose.Schema({
     },
     utrNumber: { type: String, required: false },
     paymentImage: { type: String, required: false },
+    pointsBalance: { type: Number, default: 1000 }, // Signup पर 1000 पॉइंट्स (₹10)
+  walletAmount: { type: Number, default: 0 },    // असली पैसे (Claim करने के बाद यहाँ आएंगे)
+  lastScratchAt: { type: Date },                 // आखिरी स्क्रैच का समय
+  isActivate: { type: Boolean, default: false },
+  scratchCardsBalance: { type: Number, default: 0 },
 
 }, {
     timestamps: true
