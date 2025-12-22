@@ -1,5 +1,5 @@
 import express, { Router } from "express"
-import { addContact, edit, getReferralsByCode, getUserData, LoginWithGoogle, paymentConfig, paymentProof, refferBy, userTransaaction, withdrawAmount } from "../Controller/userController.js";
+import { addContact, edit, getReferralsByCode, getTodayRewardPreview , getUserData,claimDailyPoints , convertPoints, LoginWithGoogle, paymentConfig, paymentProof, refferBy, userTransaaction, withdrawAmount } from "../Controller/userController.js";
 import upload from "../Middleware/upload.js";
 import { authentication } from "../Middleware/authentication.js";
 import { authorization } from "../Middleware/authorization.js";
@@ -29,5 +29,19 @@ userRouter.get('/transaction-list/:userId',authentication, authorization(['user'
 
 //contact
 userRouter.post('/contact', addContact)
+
+userRouter.post("/claim-daily-points", authentication, authorization(['user']), claimDailyPoints);
+
+// 2. पॉइंट्स को रियल मनी (₹) में कन्वर्ट करने के लिए (Claim Button)
+userRouter.post("/convert-points", authentication, authorization(['user']), convertPoints);
+
+/* ----------------------------------------------------------------------- */
+
+// User Transaction Details
+userRouter.get('/transaction-list/:userId', authentication, authorization(['user']), userTransaaction )
+
+userRouter.get('/today-reward-points', authentication, authorization(['user']), getTodayRewardPreview)
+
+
 
 export default userRouter

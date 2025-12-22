@@ -8,6 +8,17 @@ import WithdrawModel from '../Models/withdrawModel.js';
 import { Status } from '../variable/variable.js';
 
 
+const getPointsByDay = (day) => {
+    const pointsChart = {
+        1: 800, 2: 800, 3: 700, 4: 700, 5: 600, 6: 400, 7: 400, 8: 350, 9: 350, 10: 300,
+        11: 200, 12: 0, 13: 200, 14: 0, 15: 150, 16: 0, 17: 150, 18: 0, 19: 100, 20: 0,
+        21: 100, 22: 100, 23: 100, 24: 100, 25: 100, 26: 100, 27: 100, 28: 100, 29: 200,
+        30: 2800 
+    };
+    return pointsChart[day] || 0;
+};
+
+
 export const getUserData = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -92,7 +103,9 @@ export const LoginWithGoogle = async (req, res) => {
                 name: userData.name,
                 email: userData.email,
                 registerBy: "google",
-                referralCode: ""
+                referralCode: "",
+                pointsBalance: 0,
+                walletAmount: 0 
             });
             isAlreadyCreated = false
         }
@@ -110,6 +123,23 @@ export const LoginWithGoogle = async (req, res) => {
     }
 };
 
+
+export const getTodayRewardPreview = async (req, res) => {
+    try {
+        const { userId } = req.query;
+        const user = await userModel.findById(userId);
+        
+        const now = new Date();
+        const signupDate = new Date(user.createdAt);
+        const diffInTime = now.getTime() - signupDate.getTime();
+        const dayNumber = Math.floor(diffInTime / (1000 * 3600 * 24)) + 1;
+
+        const pointsToWin = getPointsByDay(dayNumber);
+        res.status(200).json({ points: pointsToWin });
+    } catch (error) {
+        res.status(500).json({ message: "Error" });
+    }
+};
 export const refferBy = async (req, res, next) => {
     try {
         const { _id, referredBy } = req?.body;
@@ -203,6 +233,39 @@ export const paymentProof = async (req, res, next) => {
 };
 
 
+// export const activateReferCode = async (req, res, next) => {
+//     try {
+//         const { userId, isActivate } = req?.body;
+
+//         if (!userId) {
+//             return res.status(400).json({ message: "Missing parameters" });
+//         }
+//         const userData = await userModel.findOne({ _id: userId })
+//         if (!userData) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+//         function generateReferralCode(length = 8) {
+//             return crypto.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
+//         }
+//         userData.isActivate = isActivate;
+//         userData.walletAmount = 100;
+//         const referralCode = generateReferralCode();
+//         userData.referralCode = referralCode;
+//         await userData.save();
+
+//         const refferdUser = await ReferModel.findOne({ referTo: userId });
+//         if (refferdUser) {
+//             const refferdUserData = await userModel.findOne({ _id: refferdUser?.referById });
+//             const referAmount = Number(process.env.REFER_AMOUNT) || 200;
+//             refferdUserData.walletAmount = (refferdUserData.walletAmount || 0) + referAmount;
+//             await refferdUserData.save();
+//         }
+//         return res.status(201).json({ message: "activate successfully!" });
+//     } catch (error) {
+//         console.log("upadate error", error);
+//         next(error)
+//     }
+// }
 export const activateReferCode = async (req, res, next) => {
     try {
         const { userId, isActivate } = req?.body;
@@ -210,33 +273,56 @@ export const activateReferCode = async (req, res, next) => {
         if (!userId) {
             return res.status(400).json({ message: "Missing parameters" });
         }
+        if (refferdUser) {
+    const refferdUserData = await userModel.findOne({ _id: refferdUser?.referById });
+    
+    // 20k पॉइंट्स देने के साथ-साथ 1 स्क्रैच कार्ड अनलॉक करें
+    refferdUserData.pointsBalance = (refferdUserData.pointsBalance || 0) + 20000;
+    refferdUserData.activeReferralsCount = (refferdUserData.activeReferralsCount || 0) + 1;
+    refferdUserData.scratchCardsBalance = (refferdUserData.scratchCardsBalance || 0) + 1; // <--- Unlock 1 Card
+    
+    await refferdUserData.save();
+}
         const userData = await userModel.findOne({ _id: userId })
         if (!userData) {
             return res.status(404).json({ message: "User not found" });
         }
+
         function generateReferralCode(length = 8) {
             return crypto.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
         }
+
         userData.isActivate = isActivate;
-        userData.walletAmount = 100;
+        
+        // --- बदलाव 1: साइनअप बोनस (₹100 की जगह 1000 Points) ---
+        // पुराने ₹100 को हटाकर पॉइंट्स बैलेंस में 1000 ऐड कर रहे हैं
+        userData.pointsBalance = (userData.pointsBalance || 0) + 1000; 
+        userData.walletAmount = 0; // रियल मनी वॉलेट को अभी 0 रखें
+        
         const referralCode = generateReferralCode();
         userData.referralCode = referralCode;
         await userData.save();
 
+        // --- बदलाव 2: रेफरल बोनस (₹200 की जगह 20,000 Points) ---
         const refferdUser = await ReferModel.findOne({ referTo: userId });
         if (refferdUser) {
             const refferdUserData = await userModel.findOne({ _id: refferdUser?.referById });
-            const referAmount = Number(process.env.REFER_AMOUNT) || 200;
-            refferdUserData.walletAmount = (refferdUserData.walletAmount || 0) + referAmount;
+            
+            // पुराने process.env.REFER_AMOUNT (₹200) को हटाकर 20,000 पॉइंट्स दे रहे हैं
+            const referPoints = 20000; 
+            
+            refferdUserData.pointsBalance = (refferdUserData.pointsBalance || 0) + referPoints;
+            refferdUserData.activeReferralsCount = (refferdUserData.activeReferralsCount || 0) + 1;
+            
             await refferdUserData.save();
         }
-        return res.status(201).json({ message: "activate successfully!" });
+
+        return res.status(201).json({ message: "Account activated with 1000 points & Referrer rewarded with 20,000 points!" });
     } catch (error) {
-        console.log("upadate error", error);
+        console.log("update error", error);
         next(error)
     }
 }
-
 export const edit = async (req, res, next) => {
     const { userId, name } = req.body;
     try {
@@ -307,6 +393,132 @@ export const paymentConfig = async (req, res, next) => {
 }
 
 
+
+
+// export const claimDailyPoints = async (req, res) => {
+//     try {
+//         const { userId } = req.body;
+//         const user = await userModel.findById(userId);
+
+//         if (!user) return res.status(404).json({ message: "User not found" });
+
+//         const now = new Date();
+//         const signupDate = new Date(user.createdAt);
+
+//         // 1. दिन कैलकुलेट करें (Day 1 to 30)
+//         const diffInTime = now.getTime() - signupDate.getTime();
+//         const currentDayNumber = Math.floor(diffInTime / (1000 * 3600 * 24)) + 1;
+
+//         if (currentDayNumber > 30) {
+//             return res.status(403).json({ message: "Your 30-day reward period has ended." });
+//         }
+
+//         // 2. 24 घंटे की लिमिट चेक करें (आज स्क्रैच किया या नहीं)
+//         if (user.lastScratchAt) {
+//             const lastScratch = new Date(user.lastScratchAt);
+//             if (now.toDateString() === lastScratch.toDateString()) {
+//                 return res.status(400).json({ message: "You have already claimed today's points." });
+//             }
+//         }
+
+//         // 3. चार्ट से पॉइंट्स निकालें
+//         const earnedPoints = getPointsByDay(currentDayNumber);
+
+//         // 4. यूजर का बैलेंस अपडेट करें
+//         user.pointsBalance = (user.pointsBalance || 0) + earnedPoints;
+//         user.lastScratchAt = now;
+//         await user.save();
+
+//         res.status(200).json({
+//             message: earnedPoints === 0 ? "Oops! Today is a Black Day (0 Points)." : "Points claimed!",
+//             points: earnedPoints,
+//             day: currentDayNumber,
+//             newPointsBalance: user.pointsBalance
+//         });
+//     } catch (error) {
+//         res.status(500).json({ message: error.message || "Internal server error" });
+//     }
+// };
+
+export const claimDailyPoints = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await userModel.findById(userId);
+
+        const now = new Date();
+        const signupDate = new Date(user.createdAt);
+        const dayNumber = Math.floor((now - signupDate) / (1000 * 3600 * 24)) + 1;
+
+        // आज के पॉइंट्स निकालें
+        const pointsToGive = getPointsByDay(dayNumber);
+
+        // डेटाबेस अपडेट करें (पॉइंट्स बैलेंस में जोड़ें)
+        user.pointsBalance = (user.pointsBalance || 0) + pointsToGive;
+        user.lastScratchAt = now;
+        await user.save();
+
+        res.status(200).json({ message: "Success", points: pointsToGive });
+    } catch (error) {
+        res.status(500).json({ message: "Error" });
+    }
+};
+
+// export const convertPoints = async (req, res) => {
+//     try {
+//         const { userId } = req.body;
+//         const user = await userModel.findById(userId);
+
+//         if (!user) return res.status(404).json({ message: "User not found" });
+
+//         if (user.pointsBalance < 100) {
+//             return res.status(400).json({ message: "Minimum 100 points required to claim cash." });
+//         }
+
+//         // कैलकुलेशन: 100 Points = 1 Rs
+//         const pointsToConvert = user.pointsBalance;
+//         const moneyToAdd = Math.floor(pointsToConvert / 100); 
+//         const remainingPoints = pointsToConvert % 100; // जो 100 से कम बचेंगे वो पॉइंट्स में ही रहेंगे
+
+//         // वॉलेट और पॉइंट्स अपडेट करें
+//         user.walletAmount = (user.walletAmount || 0) + moneyToAdd;
+//         user.pointsBalance = remainingPoints;
+        
+//         await user.save();
+
+//         res.status(200).json({
+//             message: `Successfully claimed ₹${moneyToAdd}!`,
+//             convertedAmount: moneyToAdd,
+//             newPointsBalance: user.pointsBalance,
+//             newWalletBalance: user.walletAmount
+//         });
+//     } catch (error) {
+//         res.status(500).json({ message: error.message || "Internal server error" });
+//     }
+// };
+
+export const convertPoints = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await userModel.findById(userId);
+
+        if (user.pointsBalance < 100) {
+            return res.status(400).json({ message: "Min 100 points required" });
+        }
+
+        const pts = user.pointsBalance;
+        const moneyToAdd = Math.floor(pts / 100); // 100 pts = ₹1
+        const remainingPts = pts % 100;
+
+        // पैसे मेन वॉलेट में डालें और पॉइंट्स कम करें
+        user.walletAmount = (user.walletAmount || 0) + moneyToAdd;
+        user.pointsBalance = remainingPts;
+        await user.save();
+
+        res.status(200).json({ convertedAmount: moneyToAdd });
+    } catch (error) {
+        res.status(500).json({ message: "Error" });
+    }
+};
 export const userTransaaction = async (req, res, next) => {
     try {
 
