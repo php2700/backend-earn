@@ -15,8 +15,9 @@ const getPointsByDay = (day) => {
         21: 100, 22: 100, 23: 100, 24: 100, 25: 100, 26: 100, 27: 100, 28: 100, 29: 200,
         30: 2800 
     };
-    return pointsChart[day] || 0;
+    return pointsChart[day] ;
 };
+
 
 
 export const getUserData = async (req, res, next) => {
@@ -133,13 +134,81 @@ export const getTodayRewardPreview = async (req, res) => {
         const signupDate = new Date(user.createdAt);
         const diffInTime = now.getTime() - signupDate.getTime();
         const dayNumber = Math.floor(diffInTime / (1000 * 3600 * 24)) + 1;
+        
+        
 
         const pointsToWin = getPointsByDay(dayNumber);
         res.status(200).json({ points: pointsToWin });
+        
     } catch (error) {
         res.status(500).json({ message: "Error" });
     }
 };
+
+
+
+
+
+
+// export const claimReferralCoupon = async (req, res) => { 
+//     const { userId } = req.body;
+//     const user = await userModel.findById(userId);
+
+//     if (user.scratchCardsBalance > 0) {
+//         user.pointsBalance += 20000; // Referral Bonus Points
+//         user.scratchCardsBalance -= 1; // Ek card use ho gaya
+//         await user.save();
+//         return res.status(200).json({ message: "20,000 Referral points added!" });
+//     }
+//     return res.status(400).json({ message: "No extra coupons available" });
+// };
+
+
+// controllers/userController.js
+
+export const claimReferralCoupon = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        // Validation
+        if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: "Invalid User ID" });
+        }
+
+        const user = await userModel.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Step 1: Check karo ki kya koi Referral Coupon pending hai
+        if (user.scratchCardsBalance <= 0) {
+            return res.status(400).json({ message: "No referral coupons available" });
+        }
+
+        // Step 2: Fix 20,000 points add karo
+        const bonusPoints = 20000;
+        user.pointsBalance = (user.pointsBalance || 0) + bonusPoints;
+
+        // Step 3: Ek coupon balance minus karo
+        user.scratchCardsBalance -= 1;
+
+        await user.save();
+
+        // Step 4: Success Response
+        return res.status(200).json({ 
+            message: "Success", 
+            points: bonusPoints,
+            newBalance: user.pointsBalance,
+            remainingCoupons: user.scratchCardsBalance
+        });
+
+    } catch (error) {
+        console.error("Referral Claim Error:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+
+
+
 export const refferBy = async (req, res, next) => {
     try {
         const { _id, referredBy } = req?.body;
@@ -266,63 +335,97 @@ export const paymentProof = async (req, res, next) => {
 //         next(error)
 //     }
 // }
+
+
+
+// yeh sahi hai 
+// export const activateReferCode = async (req, res, next) => {
+//     try {
+//         const { userId, isActivate } = req?.body;
+
+//         if (!userId) {
+//             return res.status(400).json({ message: "Missing parameters" });
+//         }
+   
+//         const userData = await userModel.findOne({ _id: userId })
+//         if (!userData) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+
+//         function generateReferralCode(length = 8) {
+//             return crypto.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
+//         }
+
+//         userData.isActivate = isActivate;
+        
+//         // --- बदलाव 1: साइनअप बोनस (₹100 की जगह 1000 Points) ---
+//         // पुराने ₹100 को हटाकर पॉइंट्स बैलेंस में 1000 ऐड कर रहे हैं
+//         userData.pointsBalance = (userData.pointsBalance || 0) + 1000; 
+//         userData.walletAmount = 0; // रियल मनी वॉलेट को अभी 0 रखें
+        
+//         const referralCode = generateReferralCode();
+//         userData.referralCode = referralCode;
+//         await userData.save();
+
+//         // --- बदलाव 2: रेफरल बोनस (₹200 की जगह 20,000 Points) ---
+//         const refferdUser = await ReferModel.findOne({ referTo: userId });
+//         if (refferdUser) {
+//             const refferdUserData = await userModel.findOne({ _id: refferdUser?.referById });
+            
+//             // पुराने process.env.REFER_AMOUNT (₹200) को हटाकर 20,000 पॉइंट्स दे रहे हैं
+//             const referPoints = 20000; 
+            
+//             refferdUserData.pointsBalance = (refferdUserData.pointsBalance || 0) + referPoints;
+//             refferdUserData.activeReferralsCount = (refferdUserData.activeReferralsCount || 0) + 1;
+            
+//             await refferdUserData.save();
+//         }
+
+//         return res.status(201).json({ message: "Account activated with 1000 points & Referrer rewarded with 20,000 points!" });
+//     } catch (error) {
+//         console.log("update error", error);
+//         next(error)
+//     }
+// }
+
+
 export const activateReferCode = async (req, res, next) => {
     try {
         const { userId, isActivate } = req?.body;
+        const userData = await userModel.findOne({ _id: userId });
+        if (!userData) return res.status(404).json({ message: "User not found" });
 
-        if (!userId) {
-            return res.status(400).json({ message: "Missing parameters" });
-        }
-        if (refferdUser) {
-    const refferdUserData = await userModel.findOne({ _id: refferdUser?.referById });
-    
-    // 20k पॉइंट्स देने के साथ-साथ 1 स्क्रैच कार्ड अनलॉक करें
-    refferdUserData.pointsBalance = (refferdUserData.pointsBalance || 0) + 20000;
-    refferdUserData.activeReferralsCount = (refferdUserData.activeReferralsCount || 0) + 1;
-    refferdUserData.scratchCardsBalance = (refferdUserData.scratchCardsBalance || 0) + 1; // <--- Unlock 1 Card
-    
-    await refferdUserData.save();
-}
-        const userData = await userModel.findOne({ _id: userId })
-        if (!userData) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        function generateReferralCode(length = 8) {
+                function generateReferralCode(length = 8) {
             return crypto.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
         }
 
+
         userData.isActivate = isActivate;
-        
-        // --- बदलाव 1: साइनअप बोनस (₹100 की जगह 1000 Points) ---
-        // पुराने ₹100 को हटाकर पॉइंट्स बैलेंस में 1000 ऐड कर रहे हैं
-        userData.pointsBalance = (userData.pointsBalance || 0) + 1000; 
-        userData.walletAmount = 0; // रियल मनी वॉलेट को अभी 0 रखें
-        
-        const referralCode = generateReferralCode();
+        userData.pointsBalance = (userData.pointsBalance || 0) + 1000; // New user bonus
+        await userData.save();
+                const referralCode = generateReferralCode();
         userData.referralCode = referralCode;
         await userData.save();
 
-        // --- बदलाव 2: रेफरल बोनस (₹200 की जगह 20,000 Points) ---
         const refferdUser = await ReferModel.findOne({ referTo: userId });
         if (refferdUser) {
             const refferdUserData = await userModel.findOne({ _id: refferdUser?.referById });
             
-            // पुराने process.env.REFER_AMOUNT (₹200) को हटाकर 20,000 पॉइंट्स दे रहे हैं
-            const referPoints = 20000; 
-            
-            refferdUserData.pointsBalance = (refferdUserData.pointsBalance || 0) + referPoints;
+            // --- CHANGE HERE: Points ki jagah Scratch Card Balance badhao ---
+            refferdUserData.scratchCardsBalance = (refferdUserData.scratchCardsBalance || 0) + 1;
             refferdUserData.activeReferralsCount = (refferdUserData.activeReferralsCount || 0) + 1;
             
             await refferdUserData.save();
         }
 
-        return res.status(201).json({ message: "Account activated with 1000 points & Referrer rewarded with 20,000 points!" });
-    } catch (error) {
-        console.log("update error", error);
-        next(error)
-    }
+        return res.status(201).json({ message: "Activated! Referrer rewarded with a Scratch Card." });
+    } catch (error) { next(error); }
 }
+
+
+
+
+
 export const edit = async (req, res, next) => {
     const { userId, name } = req.body;
     try {
@@ -555,3 +658,79 @@ export const userTransaaction = async (req, res, next) => {
         next(error);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+export const activateUsers = async (req, res) => {
+    const { userId } = req.body;
+    const user = await userModel.findById(userId);
+    
+    if (!user.isActivate) {
+        user.isActivate = true;
+        await user.save();
+
+        // Referrer ko dhoondo
+        const referRecord = await ReferModel.findOne({ referTo: userId });
+        if (referRecord) {
+            const referrer = await userModel.findById(referRecord.referById);
+            if (referrer) {
+                referrer.walletAmount += 200; // Cash Reward
+                referrer.scratchCardsBalance += 1; // Extra Scratch Card Reward
+                referrer.activeReferralsCount += 1;
+                await referrer.save();
+            }
+        }
+    }
+    res.status(200).json({ message: "Activated" });
+};
+
+// 2. Daily Points Preview (Points dikhane ke liye)
+export const getTodayRewardPreviews = async (req, res) => {
+    try {
+        const { userId } = req.query;
+        if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ points: 0 });
+        }
+        const user = await userModel.findById(userId);
+        const signupDate = new Date(user.createdAt);
+        const dayNumber = Math.floor((new Date() - signupDate) / (1000 * 3600 * 24)) + 1;
+        
+        // Aapka points logic function yahan call karein
+        const points = dayNumber <= 30 ? (800 + Math.floor(Math.random() * 200)) : 0; 
+        res.status(200).json({ points });
+    } catch (e) { res.status(500).json({ points: 0 }); }
+};
+
+// 3. Claim Referral Coupon (20,000 Points)
+export const claimReferralCoupons = async (req, res) => {
+    const { userId } = req.body;
+    const user = await userModel.findById(userId);
+    if (user.scratchCardsBalance > 0) {
+        user.pointsBalance += 20000;
+        user.scratchCardsBalance -= 1;
+        await user.save();
+        return res.status(200).json({ points: 20000 });
+    }
+    res.status(400).json({ message: "No coupons" });
+};
+
+// 4. Claim Daily Points
+export const claimDailyPointss = async (req, res) => {
+    const { userId } = req.body;
+    const user = await userModel.findById(userId);
+    // ... points calculation ...
+    user.pointsBalance += points;
+    user.lastScratchAt = new Date();
+    await user.save();
+    res.status(200).json({ points });
+};
