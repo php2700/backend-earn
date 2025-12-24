@@ -13,9 +13,9 @@ const getPointsByDay = (day) => {
         1: 800, 2: 800, 3: 700, 4: 700, 5: 600, 6: 400, 7: 400, 8: 350, 9: 350, 10: 300,
         11: 200, 12: 0, 13: 200, 14: 0, 15: 150, 16: 0, 17: 150, 18: 0, 19: 100, 20: 0,
         21: 100, 22: 100, 23: 100, 24: 100, 25: 100, 26: 100, 27: 100, 28: 100, 29: 200,
-        30: 2800 
+        30: 2800
     };
-    return pointsChart[day] ;
+    return pointsChart[day];
 };
 
 
@@ -106,7 +106,7 @@ export const LoginWithGoogle = async (req, res) => {
                 registerBy: "google",
                 referralCode: "",
                 pointsBalance: 0,
-                walletAmount: 0 
+                walletAmount: 0
             });
             isAlreadyCreated = false
         }
@@ -129,17 +129,17 @@ export const getTodayRewardPreview = async (req, res) => {
     try {
         const { userId } = req.params;
         const user = await userModel.findById(userId);
-        
+
         const now = new Date();
         const signupDate = new Date(user.createdAt);
         const diffInTime = now.getTime() - signupDate.getTime();
         const dayNumber = Math.floor(diffInTime / (1000 * 3600 * 24)) + 1;
-        
-        
+
+
 
         const pointsToWin = getPointsByDay(dayNumber);
         res.status(200).json({ points: pointsToWin });
-        
+
     } catch (error) {
         res.status(500).json({ message: "Error" });
     }
@@ -193,8 +193,8 @@ export const claimReferralCoupon = async (req, res) => {
         await user.save();
 
         // Step 4: Success Response
-        return res.status(200).json({ 
-            message: "Success", 
+        return res.status(200).json({
+            message: "Success",
             points: bonusPoints,
             newBalance: user.pointsBalance,
             remainingCoupons: user.scratchCardsBalance
@@ -346,7 +346,7 @@ export const paymentProof = async (req, res, next) => {
 //         if (!userId) {
 //             return res.status(400).json({ message: "Missing parameters" });
 //         }
-   
+
 //         const userData = await userModel.findOne({ _id: userId })
 //         if (!userData) {
 //             return res.status(404).json({ message: "User not found" });
@@ -357,12 +357,12 @@ export const paymentProof = async (req, res, next) => {
 //         }
 
 //         userData.isActivate = isActivate;
-        
+
 //         // --- बदलाव 1: साइनअप बोनस (₹100 की जगह 1000 Points) ---
 //         // पुराने ₹100 को हटाकर पॉइंट्स बैलेंस में 1000 ऐड कर रहे हैं
 //         userData.pointsBalance = (userData.pointsBalance || 0) + 1000; 
 //         userData.walletAmount = 0; // रियल मनी वॉलेट को अभी 0 रखें
-        
+
 //         const referralCode = generateReferralCode();
 //         userData.referralCode = referralCode;
 //         await userData.save();
@@ -371,13 +371,13 @@ export const paymentProof = async (req, res, next) => {
 //         const refferdUser = await ReferModel.findOne({ referTo: userId });
 //         if (refferdUser) {
 //             const refferdUserData = await userModel.findOne({ _id: refferdUser?.referById });
-            
+
 //             // पुराने process.env.REFER_AMOUNT (₹200) को हटाकर 20,000 पॉइंट्स दे रहे हैं
 //             const referPoints = 20000; 
-            
+
 //             refferdUserData.pointsBalance = (refferdUserData.pointsBalance || 0) + referPoints;
 //             refferdUserData.activeReferralsCount = (refferdUserData.activeReferralsCount || 0) + 1;
-            
+
 //             await refferdUserData.save();
 //         }
 
@@ -395,26 +395,30 @@ export const activateReferCode = async (req, res, next) => {
         const userData = await userModel.findOne({ _id: userId });
         if (!userData) return res.status(404).json({ message: "User not found" });
 
-                function generateReferralCode(length = 8) {
+        function generateReferralCode(length = 8) {
             return crypto.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
         }
-
-
+        if (isActivate == 'inactive' || isActivate == 'reject') {
+            userData.isActivate = isActivate;
+            await userData.save();
+            return res.status(201).json({ message: "status updated " });
+        }
         userData.isActivate = isActivate;
+
         userData.pointsBalance = (userData.pointsBalance || 0) + 1000; // New user bonus
         await userData.save();
-                const referralCode = generateReferralCode();
+        const referralCode = generateReferralCode();
         userData.referralCode = referralCode;
         await userData.save();
 
         const refferdUser = await ReferModel.findOne({ referTo: userId });
         if (refferdUser) {
             const refferdUserData = await userModel.findOne({ _id: refferdUser?.referById });
-            
+
             // --- CHANGE HERE: Points ki jagah Scratch Card Balance badhao ---
             refferdUserData.scratchCardsBalance = (refferdUserData.scratchCardsBalance || 0) + 1;
             refferdUserData.activeReferralsCount = (refferdUserData.activeReferralsCount || 0) + 1;
-            
+
             await refferdUserData.save();
         }
 
@@ -488,7 +492,7 @@ export const paymentConfig = async (req, res, next) => {
             name: process.env.APP_NAME,
             upiId: process.env.APP_UPI_ID,
             imageName: process.env.PAYMENT_IMAGE,
-            accountHolder:process.env.ACCOUNT_HOLDER_NAME
+            accountHolder: process.env.ACCOUNT_HOLDER_NAME
         });
     } catch (error) {
         next(error)
@@ -585,7 +589,7 @@ export const claimDailyPoints = async (req, res) => {
 //         // वॉलेट और पॉइंट्स अपडेट करें
 //         user.walletAmount = (user.walletAmount || 0) + moneyToAdd;
 //         user.pointsBalance = remainingPoints;
-        
+
 //         await user.save();
 
 //         res.status(200).json({
@@ -674,7 +678,7 @@ export const userTransaaction = async (req, res, next) => {
 export const activateUsers = async (req, res) => {
     const { userId } = req.body;
     const user = await userModel.findById(userId);
-    
+
     if (!user.isActivate) {
         user.isActivate = true;
         await user.save();
@@ -704,9 +708,9 @@ export const getTodayRewardPreviews = async (req, res) => {
         const user = await userModel.findById(userId);
         const signupDate = new Date(user.createdAt);
         const dayNumber = Math.floor((new Date() - signupDate) / (1000 * 3600 * 24)) + 1;
-        
+
         // Aapka points logic function yahan call karein
-        const points = dayNumber <= 30 ? (800 + Math.floor(Math.random() * 200)) : 0; 
+        const points = dayNumber <= 30 ? (800 + Math.floor(Math.random() * 200)) : 0;
         res.status(200).json({ points });
     } catch (e) { res.status(500).json({ points: 0 }); }
 };
