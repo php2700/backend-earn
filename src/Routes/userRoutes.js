@@ -44,7 +44,7 @@ userRouter.post("/claim-daily-points", authentication, authorization(['user']), 
 userRouter.post("/convert-points", authentication, authorization(['user']), convertPoints);
 
 
-userRouter.get('/today-reward-points', authentication, authorization(['user']), getTodayRewardPreview)
+userRouter.get('/today-reward-points/:userId', authentication, authorization(['user']), getTodayRewardPreview)
 userRouter.post('/claim-referral-coupon', authentication, authorization(['user']), claimReferralCoupon)
 
 

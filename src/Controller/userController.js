@@ -127,7 +127,7 @@ export const LoginWithGoogle = async (req, res) => {
 
 export const getTodayRewardPreview = async (req, res) => {
     try {
-        const { userId } = req.query;
+        const { userId } = req.params;
         const user = await userModel.findById(userId);
         
         const now = new Date();
