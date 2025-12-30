@@ -35,7 +35,7 @@ userRouter.post('/contact', addContact)
 /* ----------------------------------------------------------------------- */
 
 // User Transaction Details
-// userRouter.get('/transaction-list/:userId', authentication, authorization(['user']), userTransaaction )
+userRouter.get('/transaction-list/:userId', authentication, authorization(['user']), userTransaaction )
 
 
 userRouter.post("/claim-daily-points", authentication, authorization(['user']), claimDailyPoints);
