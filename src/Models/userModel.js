@@ -35,10 +35,10 @@ const userSchema = new mongoose.Schema({
     default: 'inactive',
     enum: ['inactive', 'active', 'reject']
 },
-    walletAmount: {
-        type: Number,
-        default: 0
-    },
+    // walletAmount: {
+    //     type: Number,
+    //     default: 0
+    // },
     totalAmount: {
         type: Number,
         default: 0
@@ -47,6 +47,15 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: false
     },
+    withdrawalStage: { 
+    type: Number, 
+    default: 1 // Shuruat Level 1 se hogi
+},
+// Wallet amount field ensure karein
+walletAmount: { 
+    type: Number, 
+    default: 0 
+},
     utrNumber: { type: String, required: false },
     paymentImage: { type: String, required: false },
     pointsBalance: { type: Number, default: 1000 }, // Signup पर 1000 पॉइंट्स (₹10)

@@ -6,6 +6,7 @@ import ContactModel from "../Models/contactModel.js";
 import ReferModel from "../Models/referModel.js";
 import WithdrawModel from '../Models/withdrawModel.js';
 import { Status } from '../variable/variable.js';
+import  Withdrawal from "../Models/Withdrawal.js";
 
 
 const getPointsByDay = (day) => {
@@ -737,4 +738,77 @@ export const claimDailyPointss = async (req, res) => {
     user.lastScratchAt = new Date();
     await user.save();
     res.status(200).json({ points });
+};
+
+
+
+const WITHDRAWAL_LEVELS = {
+    1: { amount: 50, fee: 25 },
+    2: { amount: 100, fee: 50 },
+    3: { amount: 200, fee: 100 },
+    4: { amount: 400, fee: 200 },
+    5: { amount: 800, fee: 400 },
+    6: { amount: 1600, fee: 800 },
+    7: { amount: 3200, fee: 1600 },
+    8: { amount: 6400, fee: 3200 }
+};
+
+export const processInstantWithdrawal = async (req, res) => {
+    try {
+        const { userId, utrNumber, bankAccount, ifscCode, currentLevel } = req.body;
+
+        // 1. User dhoondo
+        const user = await userModel.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // 2. Level ka data nikaalo
+        const levelInfo = WITHDRAWAL_LEVELS[currentLevel];
+        if (!levelInfo) return res.status(400).json({ message: "Invalid Level" });
+
+        // 3. Balance Check (Money Wallet mein Level ke barabar paise hone chahiye)
+        if (user.walletAmount < levelInfo.amount) {
+            return res.status(400).json({ message: `Insufficient balance! Level ${currentLevel} requires ₹${levelInfo.amount}` });
+        }
+
+        // --- INSTANT UPDATE LOGIC (No Admin Approval) ---
+
+        // 4. Wallet se Amount deduct karein
+        user.walletAmount -= levelInfo.amount;
+
+        // 5. Withdrawal Stage update karein (Cycle 1-8)
+        let nextStage = (user.withdrawalStage || 1) + 1;
+        if (nextStage > 8) {
+            nextStage = 1; // Cycle reset to 1 after 8
+        }
+        user.withdrawalStage = nextStage;
+
+        // 6. Total Withdrawn track karein
+        user.totalAmount = (user.totalAmount || 0) + levelInfo.amount;
+
+        // 7. Transaction record save karein (Status: Completed)
+        const newWithdrawal = new Withdrawal({
+            userId,
+            amount: levelInfo.amount,
+            processingFee: levelInfo.fee,
+            level: currentLevel,
+            bankAccount,
+            ifscCode,
+            utrNumber,
+            paymentImage: req.file ? req.file.path : "No Image",
+             status: 'approved' // Automatic completed
+        });
+
+        await user.save();
+        await newWithdrawal.save();
+
+        res.status(200).json({ 
+            message: `Withdrawal Level ${currentLevel} Processed Successfully!`,
+            walletAmount: user.walletAmount,
+            nextStage: user.withdrawalStage
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server Error" });
+    }
 };
