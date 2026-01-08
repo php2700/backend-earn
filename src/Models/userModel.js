@@ -26,10 +26,15 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: false
     },
-    isActivate: {
-        type: Boolean,
-        default: false,
-    },
+    // isActivate: {
+    //     type: Boolean,
+    //     default: false,
+    // },
+   isActivate: {
+    type: String,
+    default: 'inactive',
+    enum: ['inactive', 'active', 'reject']
+},
     walletAmount: {
         type: Number,
         default: 0
@@ -45,10 +50,10 @@ const userSchema = new mongoose.Schema({
     utrNumber: { type: String, required: false },
     paymentImage: { type: String, required: false },
     pointsBalance: { type: Number, default: 1000 }, // Signup पर 1000 पॉइंट्स (₹10)
-  lastScratchAt: { type: Date },                 // आखिरी स्क्रैच का समय
-  isActivate: { type: Boolean, default: false },
-  scratchCardsBalance: { type: Number, default: 0 }, // Ye naya field hai (Referral ke liye)
-  lastScratchDate: { type: Date },
+    lastScratchAt: { type: Date },                 // आखिरी स्क्रैच का समय
+    // isActivate: { type: Boolean, default: false },
+    scratchCardsBalance: { type: Number, default: 0 }, // Ye naya field hai (Referral ke liye)
+    lastScratchDate: { type: Date },
 
 }, {
     timestamps: true
