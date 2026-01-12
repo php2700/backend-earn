@@ -1,5 +1,5 @@
 import express, { Router } from "express"
-import { addContact, edit, getReferralsByCode, claimReferralCoupon, processInstantWithdrawal, getTodayRewardPreview , getUserData,claimDailyPoints , convertPoints, LoginWithGoogle, paymentConfig, paymentProof, refferBy, userTransaaction, withdrawAmount ,      activateUsers, getTodayRewardPreviews ,claimDailyPointss ,claimReferralCoupons ,} from "../Controller/userController.js";
+import { addContact, edit, getReferralsByCode, claimReferralCoupon,withdrawRequest, getMyLastWithdrawal, getTodayRewardPreview , getUserData,claimDailyPoints , convertPoints, LoginWithGoogle, paymentConfig, paymentProof, refferBy, userTransaaction, withdrawAmount ,      activateUsers, getTodayRewardPreviews ,claimDailyPointss ,claimReferralCoupons ,} from "../Controller/userController.js";
 import upload from "../Middleware/upload.js";
 import { authentication } from "../Middleware/authentication.js";
 import { authorization } from "../Middleware/authorization.js";
@@ -48,7 +48,12 @@ userRouter.get('/today-reward-points/:userId', authentication, authorization(['u
 userRouter.post('/claim-referral-coupon', authentication, authorization(['user']), claimReferralCoupon)
 
 
-userRouter.post( '/withdraw-request-instant',authentication, authorization(['user']),  upload.single('paymentImage'), processInstantWithdrawal);
+// userRouter.post( '/withdraw-request-instant',authentication, authorization(['user']),  upload.single('paymentImage'), processInstantWithdrawal);
+
+userRouter.post('/withdraw-request', authentication, authorization(['user']), upload.single('paymentImage'), withdrawRequest);
+userRouter.post('/ my-last-withdrawal', authentication, authorization(['user']), getMyLastWithdrawal); 
+
+
 
 
 

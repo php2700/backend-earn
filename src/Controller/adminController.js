@@ -5,6 +5,7 @@ import userModel from "../Models/userModel.js";
 import referAmountModel from "../Models/referAmount.js";
 import ContactModel from "../Models/contactModel.js";
 import WithdrawModel from "../Models/withdrawModel.js";
+import Withdrawal from "../Models/Withdrawal.js";
 
 
 const checkPassword = async (password, hashPassword) => {
@@ -198,17 +199,54 @@ export const getReferAmount = async (req, res) => {
   }
 };
 
+// export const withdrawReqList = async (req, res, next) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const skip = (page - 1) * limit;
+//     const total = await WithdrawModel.countDocuments();
+//     const withReqData = await WithdrawModel.find()
+//       .populate('userId')
+//       .skip(skip).limit(limit)
+//       .sort({ createdAt: -1 })
+
+
+//     res.json({
+//       success: true,
+//       data: withReqData,
+//       pagination: {
+//         total,
+//         page,
+//         limit,
+//         totalPages: Math.ceil(total / limit)
+//       }
+//     });
+
+
+//   } catch (error) {
+//     next(error)
+//   }
+// }
+
+
+// adminController.js
+
 export const withdrawReqList = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const total = await WithdrawModel.countDocuments();
-    const withReqData = await WithdrawModel.find()
-      .populate('userId')
-      .skip(skip).limit(limit)
-      .sort({ createdAt: -1 })
 
+    const total = await Withdrawal.countDocuments();
+    
+    const withReqData = await Withdrawal.find()
+      .populate({
+        path: 'userId',
+        model: userModel // <-- Yahan string 'User' ki jagah imported 'userModel' variable use karein
+      })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
@@ -221,13 +259,11 @@ export const withdrawReqList = async (req, res, next) => {
       }
     });
 
-
   } catch (error) {
-    next(error)
+    console.error("Fetch Error:", error);
+    next(error);
   }
 }
-
-
 export const updateReferAmount = async (req, res) => {
   try {
     const { amount } = req.body;
@@ -270,40 +306,82 @@ export const contactList = async (req, res, next) => {
   }
 }
 
-export const sendPayment = async (req, res, next) => {
-  try {
-    const { _id, userId, amount, isAccept } = req.body;
-    if (!userId || !amount) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
+// export const sendPayment = async (req, res, next) => {
+//   try {
+//     const { _id, userId, amount, isAccept } = req.body;
+//     if (!userId || !amount) {
+//       return res.status(400).json({ message: "Missing required fields" });
+//     }
 
-    const withdrawReqData = await WithdrawModel.findOne({ _id: _id });
-    if (withdrawReqData.isAccept == 'Accepted') {
-      return res.status(200).json({ success: true, message: 'Already Accepted' })
-    }
-    if (isAccept == 'Rejected') {
-      withdrawReqData.isAccept = isAccept;
-      await withdrawReqData.save();
-      console.log("565656")
-      return res.status(200).json({ success: true, message: 'withdraw req rejected' })
-    }
+//     const withdrawReqData = await Withdrawal.findOne({ _id: _id });
+//     if (withdrawReqData.isAccept == 'Accepted') {
+//       return res.status(200).json({ success: true, message: 'Already Accepted' })
+//     }
+//     if (isAccept == 'Rejected') {
+//       withdrawReqData.isAccept = isAccept;
+//       await withdrawReqData.save();
+//       console.log("565656")
+//       return res.status(200).json({ success: true, message: 'withdraw req rejected' })
+//     }
    
 
-    else if (isAccept == 'Accepted') {
-      withdrawReqData.isAccept = isAccept;
-      await withdrawReqData.save();
-      const userData = await userModel.findOne({ _id: userId });
-      userData.walletAmount = userData.walletAmount - amount;
-      userData.totalAmount = userData.totalAmount + amount;
-      await userData.save();
-      return res.status(200).json({ success: true, message: 'accepted ' })
-    } console.log('444')
-    return res.status(200).json({ success: true, message: 'withdraw req updated' })
+//     else if (isAccept == 'Accepted') {
+//       withdrawReqData.isAccept = isAccept;
+//       await withdrawReqData.save();
+//       const userData = await userModel.findOne({ _id: userId });
+//       userData.walletAmount = userData.walletAmount - amount;
+//       userData.totalAmount = userData.totalAmount + amount;
+//       await userData.save();
+//       return res.status(200).json({ success: true, message: 'accepted ' })
+//     } console.log('444')
+//     return res.status(200).json({ success: true, message: 'withdraw req updated' })
 
+//   } catch (error) {
+//     next(error)
+//   }
+// }
+
+
+export const sendPayment = async (req, res) => {
+  try {
+    const { _id, userId, isAccept } = req.body; // _id = Withdrawal ID
+
+    if (isAccept !== "Accepted") {
+      await Withdrawal.findByIdAndUpdate(_id, { status: isAccept === "Rejected" ? "rejected" : "pending" });
+      return res.status(200).json({ message: `Status updated to ${isAccept}` });
+    }
+
+    // --- ACCEPTED LOGIC ---
+    const withdrawal = await Withdrawal.findById(_id);
+    const user = await userModel.findById(userId);
+
+    if (!user || !withdrawal) return res.status(404).json({ message: "Data not found" });
+
+    // 1. Wallet se amount kaatna (Level Amount e.g. 50, 500)
+    user.walletAmount -= withdrawal.amount;
+
+    // 2. Total Withdrawn track karna (Payout = Total - Fee)
+    const payout = withdrawal.amount - withdrawal.processingFee;
+    user.totalAmount = (user.totalAmount || 0) + payout;
+
+    // 3. 10-Level Cycle Logic
+    let nextStage = (user.withdrawalStage || 1) + 1;
+    if (nextStage > 10) {
+      nextStage = 1; // 10 ke baad wapis 1
+    }
+    user.withdrawalStage = nextStage;
+
+    // 4. Withdrawal status update
+    withdrawal.status = "approved";
+
+    await user.save();
+    await withdrawal.save();
+
+    res.status(200).json({ message: "Payment Accepted & Level Increased!" });
   } catch (error) {
-    next(error)
+    res.status(500).json({ message: error.message });
   }
-}
+};
 
 export const counts = async (req, res, next) => {
   try {
