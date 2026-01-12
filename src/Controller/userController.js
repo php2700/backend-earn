@@ -742,73 +742,317 @@ export const claimDailyPointss = async (req, res) => {
 
 
 
+// const WITHDRAWAL_LEVELS = {
+//     1: { amount: 50, fee: 25 },
+//     2: { amount: 500, fee: 250 },
+//     3: { amount: 2000, fee: 1000 },
+//     4: { amount: 5000, fee: 2500 },
+//     5: { amount: 10000, fee: 5000 },
+//     6: { amount: 20000, fee: 10000 },
+//     7: { amount: 50000, fee: 25000 },
+//     8: { amount: 100000, fee: 50000 },
+//     9:{ amount: 200000, fee: 100000 },
+//    10: { amount: 500000, fee: 250000 },
+// };
+
+// export const processInstantWithdrawal = async (req, res) => {
+//     try {
+//         const { userId, utrNumber, bankAccount, ifscCode, currentLevel } = req.body;
+
+//         // 1. User dhoondo
+//         const user = await userModel.findById(userId);
+//         if (!user) return res.status(404).json({ message: "User not found" });
+
+//         // 2. Level ka data nikaalo
+//         const levelInfo = WITHDRAWAL_LEVELS[currentLevel];
+//         if (!levelInfo) return res.status(400).json({ message: "Invalid Level" });
+
+//         // 3. Balance Check (Money Wallet mein Level ke barabar paise hone chahiye)
+//         if (user.walletAmount < levelInfo.amount) {
+//             return res.status(400).json({ message: `Insufficient balance! Level ${currentLevel} requires ₹${levelInfo.amount}` });
+//         }
+
+//         // --- INSTANT UPDATE LOGIC (No Admin Approval) ---
+
+//         // 4. Wallet se Amount deduct karein
+//         user.walletAmount -= levelInfo.amount;
+
+//         // 5. Withdrawal Stage update karein (Cycle 1-8)
+//         let nextStage = (user.withdrawalStage || 1) + 1;
+//         if (nextStage > 10) {
+//             nextStage = 1; // Cycle reset to 1 after 8
+//         }
+//         user.withdrawalStage = nextStage;
+
+//         // 6. Total Withdrawn track karein
+//         user.totalAmount = (user.totalAmount || 0) + levelInfo.amount;
+
+//         // 7. Transaction record save karein (Status: Completed)
+//         const newWithdrawal = new Withdrawal({
+//             userId,
+//             amount: levelInfo.amount,
+//             processingFee: levelInfo.fee,
+//             level: currentLevel,
+//             bankAccount,
+//             ifscCode,
+//             utrNumber,
+//             paymentImage: req.file ? req.file.path : "No Image",
+//              status: 'approved' // Automatic completed
+//         });
+
+//         await user.save();
+//         await newWithdrawal.save();
+
+//         res.status(200).json({ 
+//             message: `Withdrawal Level ${currentLevel} Processed Successfully!`,
+//             walletAmount: user.walletAmount,
+//             nextStage: user.withdrawalStage
+//         });
+
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: "Server Error" });
+//     }
+// };
+
+
+
+
+
+// const WITHDRAWAL_LEVELS = {
+//     1: { amount: 50, fee: 25 },
+//     2: { amount: 500, fee: 250 },
+//     3: { amount: 2000, fee: 1000 },
+//     4: { amount: 5000, fee: 2500 },
+//     5: { amount: 10000, fee: 5000 },
+//     6: { amount: 20000, fee: 10000 },
+//     7: { amount: 50000, fee: 25000 },
+//     8: { amount: 100000, fee: 50000 },
+//     9: { amount: 200000, fee: 100000 },
+//     10: { amount: 500000, fee: 250000 }
+// };
+
+// 1. User submits request (Status: Pending)
+// export const withdrawRequest = async (req, res) => {
+//     try {
+//         const userId = req.id;
+//         const { utrNumber, bankAccount, ifscCode, level } = req.body;
+
+//         const levelData = WITHDRAWAL_LEVELS[level];
+//         const user = await userModel.findById(userId);
+
+//         if (user.walletAmount < levelData.amount) {
+//             return res.status(400).json({ message: "Insufficient balance" });
+//         }
+
+//         const newWithdrawal = new Withdrawal({
+//             userId,
+//             amount: levelData.amount,
+//             processingFee: levelData.fee,
+//             level: level,
+//             bankAccount,
+//             ifscCode,
+//             utrNumber,
+//             paymentImage: req.file ? req.file.filename : null,
+//             status: 'pending' // Admin approval ke liye pending
+//         });
+
+//         await newWithdrawal.save();
+//         res.status(200).json({ message: "Request submitted successfully" });
+//     } catch (error) {
+//         res.status(500).json({ message: error.message });
+//     }
+// };
+
+
+
+
+
+
+
+
+// 10 LEVELS CONFIGURATION
 const WITHDRAWAL_LEVELS = {
     1: { amount: 50, fee: 25 },
-    2: { amount: 100, fee: 50 },
-    3: { amount: 200, fee: 100 },
-    4: { amount: 400, fee: 200 },
-    5: { amount: 800, fee: 400 },
-    6: { amount: 1600, fee: 800 },
-    7: { amount: 3200, fee: 1600 },
-    8: { amount: 6400, fee: 3200 }
+    2: { amount: 500, fee: 250 },
+    3: { amount: 2000, fee: 1000 },
+    4: { amount: 5000, fee: 2500 },
+    5: { amount: 10000, fee: 5000 },
+    6: { amount: 20000, fee: 10000 },
+    7: { amount: 50000, fee: 25000 },
+    8: { amount: 100000, fee: 50000 },
+    9: { amount: 200000, fee: 100000 },
+    10: { amount: 500000, fee: 250000 }
 };
 
-export const processInstantWithdrawal = async (req, res) => {
+// --- USER: SUBMIT WITHDRAWAL REQUEST ---
+// userController.js mein withdrawRequest function ko aise update karein:
+// export const withdrawRequest = async (req, res) => {
+//     try {
+//         const userId = req.id;
+//         // Frontend se 'level' ya 'currentLevel' dono mein se kuch bhi aaye, handle ho jayega
+//         const levelKey = req.body.level || req.body.currentLevel; 
+//         const { utrNumber, bankAccount, ifscCode } = req.body;
+
+//         // Level ko Number mein convert karna zaroori hai
+//         const levelData = WITHDRAWAL_LEVELS[Number(levelKey)]; 
+
+//         if (!levelData) {
+//             return res.status(400).json({ message: "Invalid Withdrawal Level" });
+//         }
+
+//         const user = await userModel.findById(userId);
+//         if (!user) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+
+//         // Processing... baki logic same rahega
+//         const newWithdrawal = new Withdrawal({
+//             userId,
+//             amount: levelData.amount,
+//             processingFee: levelData.fee,
+//             level: Number(levelKey),
+//             bankAccount,
+//             ifscCode,
+//             utrNumber,
+//             paymentImage: req.file ? req.file.filename : null,
+//             status: 'pending'
+//         });
+
+//         await newWithdrawal.save();
+//         res.status(200).json({ message: "Request submitted successfully" });
+
+//     } catch (error) {
+//         res.status(500).json({ message: error.message });
+//     }
+// };
+export const withdrawRequest = async (req, res) => {
     try {
-        const { userId, utrNumber, bankAccount, ifscCode, currentLevel } = req.body;
+        // ID nikaalne ke 3 tarike: req.id (Auth middleware), req.userId (Fallback), ya body se.
+        const userId = req.id || req.userId || req.body.userId;
+        
+        const { utrNumber, bankAccount, ifscCode, level } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Authentication failed. User ID missing." });
+        }
 
         // 1. User dhoondo
         const user = await userModel.findById(userId);
-        if (!user) return res.status(404).json({ message: "User not found" });
-
-        // 2. Level ka data nikaalo
-        const levelInfo = WITHDRAWAL_LEVELS[currentLevel];
-        if (!levelInfo) return res.status(400).json({ message: "Invalid Level" });
-
-        // 3. Balance Check (Money Wallet mein Level ke barabar paise hone chahiye)
-        if (user.walletAmount < levelInfo.amount) {
-            return res.status(400).json({ message: `Insufficient balance! Level ${currentLevel} requires ₹${levelInfo.amount}` });
+        if (!user) {
+            return res.status(404).json({ message: "User not found in Database" });
         }
 
-        // --- INSTANT UPDATE LOGIC (No Admin Approval) ---
-
-        // 4. Wallet se Amount deduct karein
-        user.walletAmount -= levelInfo.amount;
-
-        // 5. Withdrawal Stage update karein (Cycle 1-8)
-        let nextStage = (user.withdrawalStage || 1) + 1;
-        if (nextStage > 8) {
-            nextStage = 1; // Cycle reset to 1 after 8
+        // 2. Level Check (frontend se data string aata hai, isliye Number() lagaya)
+        const levelData = WITHDRAWAL_LEVELS[Number(level)];
+        if (!levelData) {
+            return res.status(400).json({ message: "Invalid Withdrawal Level" });
         }
-        user.withdrawalStage = nextStage;
 
-        // 6. Total Withdrawn track karein
-        user.totalAmount = (user.totalAmount || 0) + levelInfo.amount;
+        // 3. Wallet Balance Check
+        if (user.walletAmount < levelData.amount) {
+            return res.status(400).json({ 
+                message: `Insufficient balance! Level ${level} needs ₹${levelData.amount}` 
+            });
+        }
 
-        // 7. Transaction record save karein (Status: Completed)
+        // 4. Save Request (Status: pending)
         const newWithdrawal = new Withdrawal({
-            userId,
-            amount: levelInfo.amount,
-            processingFee: levelInfo.fee,
-            level: currentLevel,
+            userId: user._id,
+            amount: levelData.amount,
+            processingFee: levelData.fee,
+            level: Number(level),
             bankAccount,
             ifscCode,
             utrNumber,
-            paymentImage: req.file ? req.file.path : "No Image",
-             status: 'approved' // Automatic completed
+            paymentImage: req.file ? req.file.filename : null,
+            status: 'pending' 
         });
 
-        await user.save();
         await newWithdrawal.save();
-
-        res.status(200).json({ 
-            message: `Withdrawal Level ${currentLevel} Processed Successfully!`,
-            walletAmount: user.walletAmount,
-            nextStage: user.withdrawalStage
-        });
+        res.status(200).json({ message: "Withdrawal request submitted for Admin review!" });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
+        console.error("Backend Error:", error);
+        res.status(500).json({ message: error.message });
     }
 };
+
+
+
+export const getMyLastWithdrawal = async (req, res) => {
+    try {
+        const lastWithdraw = await Withdrawal.findOne({ userId: req.id }).sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: lastWithdraw });
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching status" });
+    }
+}
+
+// --- ADMIN: APPROVE WITHDRAWAL (Level Up + Money Deduct) ---
+export const approveWithdrawal = async (req, res) => {
+    try {
+        const { withdrawalId } = req.params;
+        const withdrawal = await Withdrawal.findById(withdrawalId);
+
+        if (!withdrawal || withdrawal.status !== 'pending') {
+            return res.status(400).json({ message: "Request not found or already approved" });
+        }
+
+        const user = await userModel.findById(withdrawal.userId);
+        if (!user) return res.status(404).json({ message: "User no longer exists" });
+
+        // Logic: Approved hone par hi paise katenge
+        user.walletAmount -= withdrawal.amount;
+        user.totalAmount = (user.totalAmount || 0) + withdrawal.amount;
+
+        // 10-Level Cycle Logic (Stage 1 to 10)
+        let nextStage = (user.withdrawalStage || 1) + 1;
+        if (nextStage > 10) {
+            nextStage = 1; // 10 ke baad Stage 1 par reset
+        }
+        user.withdrawalStage = nextStage;
+
+        withdrawal.status = 'approved';
+
+        await user.save();
+        await withdrawal.save();
+
+        res.status(200).json({ message: "Withdrawal Approved! Level updated successfully." });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// 2. Admin Approves (Balance deduction & Level increment)
+// export const approveWithdrawal = async (req, res) => {
+//     try {
+//         const { withdrawalId } = req.params; // Admin panel se ID aayegi
+//         const withdrawal = await Withdrawal.findById(withdrawalId);
+
+//         if (!withdrawal || withdrawal.status !== 'pending') {
+//             return res.status(400).json({ message: "Invalid or already processed request" });
+//         }
+
+//         const user = await userModel.findById(withdrawal.userId);
+
+//         // Deduct money and update totals
+//         user.walletAmount -= withdrawal.amount;
+//         user.totalAmount = (user.totalAmount || 0) + (withdrawal.amount - withdrawal.processingFee);
+
+//         // 10-Level Cycle Logic
+//         let nextStage = (user.withdrawalStage || 1) + 1;
+//         if (nextStage > 10) nextStage = 1; // 10 ke baad wapis 1
+//         user.withdrawalStage = nextStage;
+
+//         withdrawal.status = 'approved';
+
+//         await user.save();
+//         await withdrawal.save();
+
+//         res.status(200).json({ message: "Withdrawal approved and level updated!" });
+//     } catch (error) {
+//         res.status(500).json({ message: error.message });
+//     }
+// };
