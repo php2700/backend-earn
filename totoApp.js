@@ -17,9 +17,10 @@ app.use(cors());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use("/public", express.static(path.join(__dirname, "public")))
 // app.use("/uploads", express.static(path.join(__dirname, "uploads"))); 
-app.use("/uploads", express.static(path.join(__dirname, "public", "uploads"))); 
+// app.use("/uploads", express.static(path.join(__dirname, "public", "uploads"))); 
 
 const razorpayInstance = new Razorpay({
   key_id: 'rzp_test_R7z5O0bqmRXuiH',
