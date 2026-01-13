@@ -627,49 +627,73 @@ export const convertPoints = async (req, res) => {
         res.status(500).json({ message: "Error" });
     }
 };
+// export const userTransaaction = async (req, res, next) => {
+//     try {
+
+//         const { userId } = req?.params;
+//         const result = await userModel.aggregate([
+//             {
+//                 $match: { _id: new mongoose.Types.ObjectId(userId) }
+//             },
+//             {
+//                 $lookup: {
+//                     from: "withdraws",
+//                     let: { userId: "$_id" },
+//                     pipeline: [
+//                         {
+//                             $match: { $expr: { $eq: ["$userId", "$$userId"] } }
+//                         },
+//                         {
+//                             $sort: { createdAt: -1 }
+//                         }
+//                     ],
+//                     as: "withdraw"
+//                 }
+//             }
+//         ])
+
+//         if (!result?.length) {
+//             return res.status(Status.NOT_FOUND).json({
+//                 success: false,
+//                 message: "User not found"
+//             })
+//         }
+//         return res.status(Status.SUCCESS).json({ success: true, data: result[0] })
+//     } catch (error) {
+//         next(error);
+//     }
+// }
+
+
+
+
+
+
+
 export const userTransaaction = async (req, res, next) => {
     try {
+        const { userId } = req.params;
 
-        const { userId } = req?.params;
-        const result = await userModel.aggregate([
-            {
-                $match: { _id: new mongoose.Types.ObjectId(userId) }
-            },
-            {
-                $lookup: {
-                    from: "withdraws",
-                    let: { userId: "$_id" },
-                    pipeline: [
-                        {
-                            $match: { $expr: { $eq: ["$userId", "$$userId"] } }
-                        },
-                        {
-                            $sort: { createdAt: -1 }
-                        }
-                    ],
-                    as: "withdraw"
-                }
-            }
-        ])
+        // User ki sari withdrawals dhoondo aur latest ko sabse upar rakho
+        const withdrawals = await Withdrawal.find({ userId }).sort({ createdAt: -1 });
 
-        if (!result?.length) {
-            return res.status(Status.NOT_FOUND).json({
+        if (!withdrawals) {
+            return res.status(404).json({
                 success: false,
-                message: "User not found"
-            })
+                message: "No transactions found"
+            });
         }
-        return res.status(Status.SUCCESS).json({ success: true, data: result[0] })
+
+        // Frontend ki ummeed ke mutabik data bhej rahe hain
+        return res.status(200).json({ 
+            success: true, 
+            data: { withdraw: withdrawals } 
+        });
+
     } catch (error) {
         next(error);
     }
-}
-
-
-
-
-
-
-
+};
 
 
 
