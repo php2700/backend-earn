@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     // },
    isActivate: {
     type: String,
-    default: 'inactive',
+    default: 'active',
     enum: ['inactive', 'active', 'reject']
 },
     // walletAmount: {

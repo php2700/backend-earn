@@ -84,46 +84,317 @@ export const getUserData = async (req, res, next) => {
 };
 
 
+// export const LoginWithGoogle = async (req, res) => {
+//     try {
+//         const { accessToken } = req.body;
+//         const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+//             headers: {
+//                 Authorization: `Bearer ${accessToken}`,
+//             },
+//         });
+
+//         const userData = await googleRes.json();
+//         if (!userData || !userData.email) {
+//             return res.status(400).json({ message: "Invalid Google token" });
+//         }
+//         let user = await userModel.findOne({ email: userData.email });
+
+//         let isAlreadyCreated = true;
+//         if (!user) {
+//             user = await userModel.create({
+//                 name: userData.name,
+//                 email: userData.email,
+//                 registerBy: "google",
+//                 referralCode: "",
+//                 pointsBalance: 0,
+//                 walletAmount: 0
+//             });
+//             isAlreadyCreated = false
+//         }
+//         const token = jwt.sign(
+//             { _id: user._id, role: user.role },
+//             process.env.JWT_SECRET_KEY,
+//             { expiresIn: process.env.JWT_EXPIRE_TIME }
+//         );
+
+//         res.json({ token, user, isAlreadyCreated });
+//     } catch (error) {
+//         return res
+//             .status(400)
+//             .json({ success: false, message: error?.message });
+//     }
+// };
+
+
+
+// export const LoginWithGoogle = async (req, res) => {
+//     try {
+//         const { accessToken } = req.body;
+//         const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+//             headers: {
+//                 Authorization: `Bearer ${accessToken}`,
+//             },
+//         });
+
+//         const userData = await googleRes.json();
+//         if (!userData || !userData.email) {
+//             return res.status(400).json({ message: "Invalid Google token" });
+//         }
+
+//         let user = await userModel.findOne({ email: userData.email });
+
+//         let isAlreadyCreated = true;
+
+//         if (!user) {
+//             // --- NAYA USER SIGNUP LOGIC ---
+            
+//             // 1. Random Referral Code Generator (8 digits)
+//             const generateCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+//             user = await userModel.create({
+//                 name: userData.name,
+//                 email: userData.email,
+//                 registerBy: "google",
+//                 referralCode: generateCode, // Turant code set hoga
+//                 pointsBalance: 1000,        // Turant 1000 points milenge
+//                 isActivate: 'active',       // Turant active status
+//                 walletAmount: 0,
+//                 withdrawalStage: 1
+//             });
+//             isAlreadyCreated = false;
+//         } else {
+//             // --- EXISTING USER FIX ---
+//             // Agar purana user login kare jiska referral code khali hai ya status inactive hai
+//             if (!user.referralCode || user.referralCode === "" || user.isActivate === 'inactive') {
+//                 user.referralCode = user.referralCode || Math.random().toString(36).substring(2, 10).toUpperCase();
+//                 user.isActivate = 'active';
+//                 // Agar points pehle se 1000 se kam hain toh update karein (Optional)
+//                 if(user.pointsBalance < 1000) user.pointsBalance = 1000;
+//                 await user.save();
+//             }
+//         }
+
+//         const token = jwt.sign(
+//             { _id: user._id, role: user.role },
+//             process.env.JWT_SECRET_KEY,
+//             { expiresIn: process.env.JWT_EXPIRE_TIME }
+//         );
+
+//         res.json({ token, user, isAlreadyCreated });
+//     } catch (error) {
+//         return res
+//             .status(400)
+//             .json({ success: false, message: error?.message });
+//     }
+// };
+
+// 1. Google Login Controller
+// export const LoginWithGoogle = async (req, res) => {
+//     try {
+//         const { accessToken } = req.body;
+//         const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+//             headers: { Authorization: `Bearer ${accessToken}` },
+//         });
+
+//         const userData = await googleRes.json();
+//         if (!userData?.email) return res.status(400).json({ message: "Invalid Google token" });
+
+//         let user = await userModel.findOne({ email: userData.email });
+
+//         let isAlreadyCreated = true;
+//         if (!user) {
+//             // Naye user ke liye unique code generate karein
+//             const generateCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+//             user = await userModel.create({
+//                 name: userData.name,
+//                 email: userData.email,
+//                 registerBy: "google",
+//                 referralCode: generateCode, // Turant code set hoga
+//                 pointsBalance: 1000,        // Signup par turant 1000 points
+//                 isActivate: 'active',       // Turant active (No admin needed)
+//                 walletAmount: 0,
+//                 withdrawalStage: 1
+//             });
+//             isAlreadyCreated = false;
+//         }
+
+//         const token = jwt.sign({ _id: user._id, role: user.role }, process.env.JWT_SECRET_KEY);
+//         res.json({ token, user, isAlreadyCreated });
+//     } catch (error) {
+//         res.status(400).json({ success: false, message: error.message });
+//     }
+// };
+
+// 1. Google Login: Naye user ko 1000 points aur Referral Code turant dene ke liye
+// export const LoginWithGoogle = async (req, res) => {
+//     try {
+//         const { accessToken } = req.body;
+//         const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+//             headers: { Authorization: `Bearer ${accessToken}` },
+//         });
+
+//         const userData = await googleRes.json();
+//         if (!userData || !userData.email) {
+//             return res.status(400).json({ message: "Invalid Google token" });
+//         }
+
+//         let user = await userModel.findOne({ email: userData.email });
+
+//         let isAlreadyCreated = true;
+//         if (!user) {
+//             // Naya Referral Code generate karein (e.g. TOTO78AB)
+//             const generateCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+//             // --- NAYA USER CREATE KARTE WAQT HI SARI VALUES DE DENI HAI ---
+//             user = await userModel.create({
+//                 name: userData.name,
+//                 email: userData.email,
+//                 registerBy: "google",
+//                 referralCode: generateCode, // Turant code set hoga
+//                 pointsBalance: 1000,        // Signup par turant 1000 points (Admin ka wait nahi)
+//                 isActivate: 'active',       // Account turant active
+//                 walletAmount: 0,
+//                 withdrawalStage: 1
+//             });
+//             isAlreadyCreated = false;
+//         } else {
+//             // FIX: Agar purana user login kare jiska code khali hai, toh usey ab update kar dein
+//             if (!user.referralCode || user.referralCode === "") {
+//                 user.referralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+//                 user.isActivate = 'active';
+//                 if(user.pointsBalance < 1000) user.pointsBalance = 1000;
+//                 await user.save();
+//             }
+//         }
+
+//         const token = jwt.sign(
+//             { _id: user._id, role: user.role },
+//             process.env.JWT_SECRET_KEY,
+//             { expiresIn: process.env.JWT_EXPIRE_TIME }
+//         );
+
+//         // Naya user ho ya purana, backend pura 'user' object bheje ga frontend ko
+//         res.json({ token, user, isAlreadyCreated });
+//     } catch (error) {
+//         return res.status(400).json({ success: false, message: error?.message });
+//     }
+// };
+
+
+
 export const LoginWithGoogle = async (req, res) => {
     try {
         const { accessToken } = req.body;
         const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
+            headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         const userData = await googleRes.json();
-        if (!userData || !userData.email) {
-            return res.status(400).json({ message: "Invalid Google token" });
-        }
-        let user = await userModel.findOne({ email: userData.email });
+        if (!userData || !userData.email) return res.status(400).json({ message: "Invalid Google token" });
 
+        let user = await userModel.findOne({ email: userData.email });
         let isAlreadyCreated = true;
+
         if (!user) {
+            // Naya code generate karein
+            const generateCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+
             user = await userModel.create({
                 name: userData.name,
                 email: userData.email,
                 registerBy: "google",
-                referralCode: "",
-                pointsBalance: 0,
-                walletAmount: 0
+                referralCode: generateCode,
+                pointsBalance: 1000,    // Turant 1000 points
+                isActivate: 'active',   // Turant active
+                walletAmount: 0,
+                withdrawalStage: 1
             });
-            isAlreadyCreated = false
+            isAlreadyCreated = false;
         }
-        const token = jwt.sign(
-            { _id: user._id, role: user.role },
-            process.env.JWT_SECRET_KEY,
-            { expiresIn: process.env.JWT_EXPIRE_TIME }
-        );
 
+        const token = jwt.sign({ _id: user._id, role: user.role }, process.env.JWT_SECRET_KEY);
         res.json({ token, user, isAlreadyCreated });
     } catch (error) {
-        return res
-            .status(400)
-            .json({ success: false, message: error?.message });
+        res.status(400).json({ success: false, message: error.message });
     }
 };
+
+
+// 2. Update Referral: Jaise hi naya user submit kare, Referrer ko turant scratch card mile
+export const updateRefferBy = async (req, res) => {
+    try {
+        const { _id, referredBy } = req.body; // _id: naya user, referredBy: referral code
+
+        if (!referredBy) return res.status(400).json({ message: "Referral code required" });
+
+        const newUser = await userModel.findById(_id);
+        if (!newUser) return res.status(404).json({ message: "User not found" });
+
+        // 1. Referrer (jisne refer kiya) ko dhoondo
+        const cleanCode = referredBy.trim().toUpperCase();
+        const referrer = await userModel.findOne({ referralCode: cleanCode });
+
+        if (!referrer) {
+            return res.status(404).json({ message: "Invalid Referral Code" });
+        }
+
+        // 2. Self-referral check (khud ka code use nahi kar sakte)
+        if (referrer._id.toString() === newUser._id.toString()) {
+            return res.status(400).json({ message: "Self-referral not allowed" });
+        }
+
+        // --- REWARD LOGIC (IMPORTANT) ---
+        // 3. Referrer ko turant 1 scratch card balance de do
+        referrer.scratchCardsBalance = (referrer.scratchCardsBalance || 0) + 1;
+        await referrer.save();
+
+        // 4. Naye User ko 'active' mark karein (kyunki ab activation free hai)
+        newUser.isActivate = 'active'; 
+        // Agar naye user ke points 0 hain, toh signup bonus (1000) yahan bhi ensure kar sakte hain
+        if (newUser.pointsBalance === 0) {
+            newUser.pointsBalance = 1000;
+        }
+        await newUser.save();
+
+        res.json({ 
+            success: true, 
+            message: "Referral successful! Referrer rewarded with a scratch card." 
+        });
+
+    } catch (error) {
+        console.error("Referral Error:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
+// 2. Update ReferredBy Controller (Yahan Referrer ko 20k reward milega)
+// export const updateRefferBy = async (req, res) => {
+//     try {
+//         const { _id, referredBy } = req.body; // _id is new user, referredBy is code
+
+//         const user = await userModel.findById(_id);
+//         if (!user) return res.status(404).json({ message: "User not found" });
+
+//         // Jisne refer kiya usko dhoondo
+//         const referrer = await userModel.findOne({ referralCode: referredBy });
+
+//         if (referrer) {
+//             // PEHLE: Admin activation par reward milta tha
+//             // AB: Naye user ke signup par hi Referrer ko reward mil jayega
+//             referrer.scratchCardsBalance += 1; // 20,000 points ka scratch card mil gaya
+//             await referrer.save();
+
+//             // Tracking ke liye referred list mein entry (Optional - agar aapka model hai)
+//             // await referredModel.create({ referById: referrer._id, referTo: user._id });
+//         }
+
+//         res.json({ success: true, message: "Referral updated and reward sent to referrer!" });
+//     } catch (error) {
+//         res.status(500).json({ message: error.message });
+//     }
+// };
 
 
 export const getTodayRewardPreview = async (req, res) => {
@@ -210,20 +481,103 @@ export const claimReferralCoupon = async (req, res) => {
 
 
 
+// export const refferBy = async (req, res, next) => {
+//     try {
+//         const { _id, referredBy } = req?.body;
+//         let user = await userModel.findOne({ referralCode: referredBy });
+//         if (!user) return res.status(400).json({ success: false, message: 'refer code not exist' })
+//         let obj = { referById: user?._id, referTo: _id }
+//         const refer = new ReferModel(obj);
+//         await refer.save();
+//         return res.status(201).json({ message: "referr by update successfully!" });
+//     } catch (error) {
+//         console.log("upadate error", error);
+//         next(error);
+//     }
+// }
+
 export const refferBy = async (req, res, next) => {
     try {
-        const { _id, referredBy } = req?.body;
-        let user = await userModel.findOne({ referralCode: referredBy });
-        if (!user) return res.status(400).json({ success: false, message: 'refer code not exist' })
-        let obj = { referById: user?._id, referTo: _id }
+        const { _id, referredBy } = req?.body; // _id: naya user, referredBy: code
+
+        // 1. Referrer ko dhoondo
+        let referrer = await userModel.findOne({ referralCode: referredBy });
+        if (!referrer) return res.status(400).json({ success: false, message: 'Refer code does not exist' });
+
+        // 2. Self-referral check
+        const newUser = await userModel.findById(_id);
+        if (referrer._id.toString() === _id.toString()) {
+            return res.status(400).json({ success: false, message: 'You cannot refer yourself' });
+        }
+
+        // 3. ReferModel mein record save karein (Tracking ke liye)
+        let obj = { referById: referrer._id, referTo: _id }
         const refer = new ReferModel(obj);
         await refer.save();
-        return res.status(201).json({ message: "referr by update successfully!" });
+
+        // --- IMPORTANT: REWARD LOGIC ADDED HERE ---
+        
+        // 4. Referrer ko turant 1 Scratch Card de do
+        referrer.scratchCardsBalance = (referrer.scratchCardsBalance || 0) + 1;
+        await referrer.save();
+
+        // 5. Naye User ko turant Active aur 1000 points de do
+        if (newUser) {
+            newUser.isActivate = 'active';
+            newUser.pointsBalance = 1000; // Signup bonus
+            await newUser.save();
+        }
+
+        return res.status(201).json({ 
+            success: true, 
+            message: "Referral updated! Referrer rewarded and User activated." 
+        });
     } catch (error) {
-        console.log("upadate error", error);
+        console.log("update error", error);
         next(error);
     }
 }
+
+// export const getReferralsByCode = async (req, res, next) => {
+//     try {
+//         const { userId } = req.params;
+//         const userData = await userModel.findById(userId);
+//         if (!userData) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+//         const referrals = await ReferModel.aggregate([
+//             { $match: { referById: new mongoose.Types.ObjectId(userId) } },
+//             {
+//                 $lookup: {
+//                     from: "users",
+//                     localField: "referTo",
+//                     foreignField: "_id",
+//                     as: "referredUser"
+//                 }
+//             },
+//             { $unwind: "$referredUser" },
+//             {
+//                 $project: {
+//                     _id: 0,
+//                     name: "$referredUser.name",
+//                     email: "$referredUser.email",
+//                     referralCode: "$referredUser.referralCode",
+//                     createdAt: "$referredUser.createdAt"
+//                 }
+//             }
+//         ]);
+//         res.status(200).json({
+//             userReferralCode: userData.referralCode,
+//             success: true,
+//             count: referrals.length,
+//             referrals
+//         });
+//     } catch (error) {
+//         console.error("Error fetching referrals:", error);
+//         next(error);
+//     }
+// };
+
 
 export const getReferralsByCode = async (req, res, next) => {
     try {
@@ -236,7 +590,7 @@ export const getReferralsByCode = async (req, res, next) => {
             { $match: { referById: new mongoose.Types.ObjectId(userId) } },
             {
                 $lookup: {
-                    from: "users",
+                    from: "users", // Check karein collection name 'users' hi hai na
                     localField: "referTo",
                     foreignField: "_id",
                     as: "referredUser"
@@ -249,6 +603,7 @@ export const getReferralsByCode = async (req, res, next) => {
                     name: "$referredUser.name",
                     email: "$referredUser.email",
                     referralCode: "$referredUser.referralCode",
+                    isActivate: "$referredUser.isActivate", // YEH LINE ADD KI HAI
                     createdAt: "$referredUser.createdAt"
                 }
             }
@@ -1014,41 +1369,101 @@ export const getMyLastWithdrawal = async (req, res) => {
 }
 
 // --- ADMIN: APPROVE WITHDRAWAL (Level Up + Money Deduct) ---
+// export const approveWithdrawal = async (req, res) => {
+//     try {
+//         const { withdrawalId } = req.params;
+//         const withdrawal = await Withdrawal.findById(withdrawalId);
+
+//         if (!withdrawal || withdrawal.status !== 'pending') {
+//             return res.status(400).json({ message: "Request not found or already approved" });
+//         }
+
+//         const user = await userModel.findById(withdrawal.userId);
+//         if (!user) return res.status(404).json({ message: "User no longer exists" });
+
+//         // Logic: Approved hone par hi paise katenge
+//         user.walletAmount -= withdrawal.amount;
+//         user.totalAmount = (user.totalAmount || 0) + withdrawal.amount;
+
+//         // 10-Level Cycle Logic (Stage 1 to 10)
+//         let nextStage = (user.withdrawalStage || 1) + 1;
+//         if (nextStage > 10) {
+//             nextStage = 1; // 10 ke baad Stage 1 par reset
+//         }
+//         user.withdrawalStage = nextStage;
+
+//         withdrawal.status = 'approved';
+
+//         await user.save();
+//         await withdrawal.save();
+
+//         res.status(200).json({ message: "Withdrawal Approved! Level updated successfully." });
+
+//     } catch (error) {
+//         res.status(500).json({ message: error.message });
+//     }
+// };
+
+
 export const approveWithdrawal = async (req, res) => {
     try {
         const { withdrawalId } = req.params;
+        const { isAccept } = req.body; // Frontend se "Accepted" ya "Rejected" aayega
+
         const withdrawal = await Withdrawal.findById(withdrawalId);
 
         if (!withdrawal || withdrawal.status !== 'pending') {
-            return res.status(400).json({ message: "Request not found or already approved" });
+            return res.status(400).json({ message: "Request not found or already processed" });
         }
 
-        const user = await userModel.findById(withdrawal.userId);
-        if (!user) return res.status(404).json({ message: "User no longer exists" });
-
-        // Logic: Approved hone par hi paise katenge
-        user.walletAmount -= withdrawal.amount;
-        user.totalAmount = (user.totalAmount || 0) + withdrawal.amount;
-
-        // 10-Level Cycle Logic (Stage 1 to 10)
-        let nextStage = (user.withdrawalStage || 1) + 1;
-        if (nextStage > 10) {
-            nextStage = 1; // 10 ke baad Stage 1 par reset
+        // --- 1. AGAR ADMIN NE REJECT KIYA ---
+        if (isAccept === "Rejected") {
+            withdrawal.status = 'rejected';
+            await withdrawal.save();
+            return res.status(200).json({ message: "Withdrawal request rejected successfully." });
         }
-        user.withdrawalStage = nextStage;
 
-        withdrawal.status = 'approved';
+        // --- 2. AGAR ADMIN NE ACCEPT KIYA ---
+        if (isAccept === "Accepted") {
+            const user = await userModel.findById(withdrawal.userId);
+            if (!user) return res.status(404).json({ message: "User no longer exists" });
 
-        await user.save();
-        await withdrawal.save();
+            // Check balance before deduction (safety check)
+            if (user.walletAmount < withdrawal.amount) {
+                return res.status(400).json({ message: "User has insufficient balance now." });
+            }
 
-        res.status(200).json({ message: "Withdrawal Approved! Level updated successfully." });
+            // A. Wallet se pura Level Amount kaatna
+            user.walletAmount -= withdrawal.amount;
+
+            // B. Payout tracking (Total Amount = Jo user ko mila i.e Amount - Fee)
+            const payout = withdrawal.amount - (withdrawal.processingFee || 0);
+            user.totalAmount = (user.totalAmount || 0) + payout;
+
+            // C. 10-Level Cycle Logic (Stage 1 to 10)
+            let nextStage = (user.withdrawalStage || 1) + 1;
+            if (nextStage > 10) {
+                nextStage = 1; // 10 ke baad Stage 1 par reset
+            }
+            user.withdrawalStage = nextStage;
+
+            // D. Status change to approved
+            withdrawal.status = 'approved';
+
+            await user.save();
+            await withdrawal.save();
+
+            return res.status(200).json({ message: "Withdrawal Approved! Balance deducted and Level increased." });
+        }
+
+        // Agar kuch bhi match nahi hua (fallback)
+        return res.status(400).json({ message: "Invalid action selected." });
 
     } catch (error) {
+        console.error("Approval Error:", error);
         res.status(500).json({ message: error.message });
     }
 };
-
 // 2. Admin Approves (Balance deduction & Level increment)
 // export const approveWithdrawal = async (req, res) => {
 //     try {
