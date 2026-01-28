@@ -56,6 +56,11 @@ walletAmount: {
     type: Number, 
     default: 0 
 },
+// userModel.js ke andar
+referralPointsBalance: { 
+    type: Number, 
+    default: 0 
+},
     utrNumber: { type: String, required: false },
     paymentImage: { type: String, required: false },
     pointsBalance: { type: Number, default: 1000 }, // Signup पर 1000 पॉइंट्स (₹10)

@@ -438,45 +438,45 @@ export const getTodayRewardPreview = async (req, res) => {
 
 // controllers/userController.js
 
-export const claimReferralCoupon = async (req, res) => {
-    try {
-        const { userId } = req.body;
+// export const claimReferralCoupon = async (req, res) => {
+//     try {
+//         const { userId } = req.body;
 
-        // Validation
-        if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: "Invalid User ID" });
-        }
+//         // Validation
+//         if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+//             return res.status(400).json({ message: "Invalid User ID" });
+//         }
 
-        const user = await userModel.findById(userId);
-        if (!user) return res.status(404).json({ message: "User not found" });
+//         const user = await userModel.findById(userId);
+//         if (!user) return res.status(404).json({ message: "User not found" });
 
-        // Step 1: Check karo ki kya koi Referral Coupon pending hai
-        if (user.scratchCardsBalance <= 0) {
-            return res.status(400).json({ message: "No referral coupons available" });
-        }
+//         // Step 1: Check karo ki kya koi Referral Coupon pending hai
+//         if (user.scratchCardsBalance <= 0) {
+//             return res.status(400).json({ message: "No referral coupons available" });
+//         }
 
-        // Step 2: Fix 20,000 points add karo
-        const bonusPoints = 20000;
-        user.pointsBalance = (user.pointsBalance || 0) + bonusPoints;
+//         // Step 2: Fix 20,000 points add karo
+//         const bonusPoints = 20000;
+//         user.pointsBalance = (user.pointsBalance || 0) + bonusPoints;
 
-        // Step 3: Ek coupon balance minus karo
-        user.scratchCardsBalance -= 1;
+//         // Step 3: Ek coupon balance minus karo
+//         user.scratchCardsBalance -= 1;
 
-        await user.save();
+//         await user.save();
 
-        // Step 4: Success Response
-        return res.status(200).json({
-            message: "Success",
-            points: bonusPoints,
-            newBalance: user.pointsBalance,
-            remainingCoupons: user.scratchCardsBalance
-        });
+//         // Step 4: Success Response
+//         return res.status(200).json({
+//             message: "Success",
+//             points: bonusPoints,
+//             newBalance: user.pointsBalance,
+//             remainingCoupons: user.scratchCardsBalance
+//         });
 
-    } catch (error) {
-        console.error("Referral Claim Error:", error);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-};
+//     } catch (error) {
+//         console.error("Referral Claim Error:", error);
+//         res.status(500).json({ message: "Internal Server Error" });
+//     }
+// };
 
 
 
@@ -959,29 +959,62 @@ export const claimDailyPoints = async (req, res) => {
 //     }
 // };
 
-export const convertPoints = async (req, res) => {
-    try {
-        const { userId } = req.body;
-        const user = await userModel.findById(userId);
+// export const convertPoints = async (req, res) => {
+//     try {
+//         const { userId } = req.body;
+//         const user = await userModel.findById(userId);
 
-        if (user.pointsBalance < 100) {
-            return res.status(400).json({ message: "Min 100 points required" });
-        }
+//         if (user.pointsBalance < 100) {
+//             return res.status(400).json({ message: "Min 100 points required" });
+//         }
 
-        const pts = user.pointsBalance;
-        const moneyToAdd = Math.floor(pts / 100); // 100 pts = ₹1
-        const remainingPts = pts % 100;
+//         const pts = user.pointsBalance;
+//         const moneyToAdd = Math.floor(pts / 100); // 100 pts = ₹1
+//         const remainingPts = pts % 100;
 
-        // पैसे मेन वॉलेट में डालें और पॉइंट्स कम करें
-        user.walletAmount = (user.walletAmount || 0) + moneyToAdd;
-        user.pointsBalance = remainingPts;
-        await user.save();
+//         // पैसे मेन वॉलेट में डालें और पॉइंट्स कम करें
+//         user.walletAmount = (user.walletAmount || 0) + moneyToAdd;
+//         user.pointsBalance = remainingPts;
+//         await user.save();
 
-        res.status(200).json({ convertedAmount: moneyToAdd });
-    } catch (error) {
-        res.status(500).json({ message: "Error" });
-    }
-};
+//         res.status(200).json({ convertedAmount: moneyToAdd });
+//     } catch (error) {
+//         res.status(500).json({ message: "Error" });
+//     }
+// };
+
+
+
+28/1
+// export const convertPoints = async (req, res) => {
+//     try {
+//         const { userId } = req.body;
+//         const user = await userModel.findById(userId);
+
+//         // Yahan Min balance check ko bhi 400 kar dena chahiye kyunki ab ₹1 ke liye 400 pts chahiye
+//         if (user.pointsBalance < 400) {
+//             return res.status(400).json({ message: "Min 400 points required to get ₹1" });
+//         }
+
+//         const pts = user.pointsBalance;
+
+//         // BADLAV YAHAN HAI: 100 ki jagah 400 karein
+//         const moneyToAdd = Math.floor(pts / 400); // Ab 400 pts = ₹1 ho gaya
+//         const remainingPts = pts % 400; // 400 se divide hone ke baad bache hue points
+
+//         // पैसे मेन वॉलेट में डालें और पॉइंट्स कम करें
+//         user.walletAmount = (user.walletAmount || 0) + moneyToAdd;
+//         user.pointsBalance = remainingPts;
+//         await user.save();
+
+//         res.status(200).json({ convertedAmount: moneyToAdd });
+//     } catch (error) {
+//         res.status(500).json({ message: "Error" });
+//     }
+// };
+
+
+
 // export const userTransaaction = async (req, res, next) => {
 //     try {
 
@@ -1020,9 +1053,106 @@ export const convertPoints = async (req, res) => {
 // }
 
 
+export const convertPoints = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await userModel.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // 1. Daily/Signup Points Math (100 pts = ₹1) -> 1000 pts = ₹10
+        const dailyPts = user.pointsBalance || 0;
+        const dailyCash = Math.floor(dailyPts / 100);
+        const remainingDaily = dailyPts % 100;
+
+        // 2. Referral Points Math (400 pts = ₹1) -> 20,000 pts = ₹50
+        const refPts = user.referralPointsBalance || 0;
+        const refCash = Math.floor(refPts / 400);
+        const remainingRef = refPts % 400;
+
+        const totalCashToAdd = dailyCash + refCash;
+
+        if (totalCashToAdd <= 0) {
+            return res.status(400).json({ message: "Not enough points to convert to ₹1" });
+        }
+
+        // Wallet update karein
+        user.walletAmount = (user.walletAmount || 0) + totalCashToAdd;
+        
+        // Dono balance reset karein aur bache hue (remainder) points wapis daalein
+        user.pointsBalance = remainingDaily;
+        user.referralPointsBalance = remainingRef;
+
+        await user.save();
+
+        res.status(200).json({ 
+            success: true, 
+            convertedAmount: totalCashToAdd,
+            message: `Success! Received ₹${dailyCash} (Daily) + ₹${refCash} (Referral)` 
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Conversion failed" });
+    }
+};
+
+// export const claimReferralCoupon = async (req, res) => {
+//     try {
+//         const { userId } = req.body;
+//         const user = await userModel.findById(userId);
+
+//         if (user.scratchCardsBalance <= 0) {
+//             return res.status(400).json({ message: "No coupons" });
+//         }
+
+//         const bonusPoints = 20000;
+//         // BADLAV: Ab ye points referralPointsBalance mein jayenge
+//         user.referralPointsBalance = (user.referralPointsBalance || 0) + bonusPoints;
+//         user.scratchCardsBalance -= 1;
+
+//         await user.save();
+//         res.status(200).json({ message: "Success", points: bonusPoints });
+//     } catch (error) {
+//         res.status(500).json({ message: "Error" });
+//     }
+// };
 
 
 
+
+28/1
+export const claimReferralCoupon = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        const user = await userModel.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Check cards balance
+        if (user.scratchCardsBalance <= 0) {
+            return res.status(400).json({ message: "No referral coupons available" });
+        }
+
+        const bonusPoints = 20000;
+
+        // BADLAV: Points ab 'referralPointsBalance' mein jayenge
+        // Taki 100:1 aur 400:1 ka math mix na ho
+        user.referralPointsBalance = (user.referralPointsBalance || 0) + bonusPoints;
+        
+        // Scratch card count kam karein
+        user.scratchCardsBalance -= 1;
+
+        await user.save();
+
+        res.status(200).json({ 
+            success: true, 
+            message: "20,000 Referral Points added to your Referral Wallet!",
+            points: bonusPoints,
+            referralPointsBalance: user.referralPointsBalance 
+        });
+    } catch (error) {
+        console.error("Referral Claim Error:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
 
 
 export const userTransaaction = async (req, res, next) => {
